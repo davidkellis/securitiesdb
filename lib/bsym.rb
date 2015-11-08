@@ -257,6 +257,44 @@ module Bsym
       end
     end
 
+
+    # Securities
+
+    def all_securities
+      predefined_files.values.reduce([]) {|memo, url| memo + get_securities(url).to_a }
+    end
+
+    def stocks
+      get_securities_from_predefined_file("Equity/Common Stock")
+    end
+
+    def etps
+      get_securities_from_predefined_file("Equity/ETP")
+    end
+
+    def fund_of_funds
+      get_securities_from_predefined_file("Equity/Fund of Funds")
+    end
+
+    def mutual_funds
+      get_securities_from_predefined_file("Equity/Mutual Fund")
+    end
+
+    def open_end_funds
+      get_securities_from_predefined_file("Equity/Open-End Fund")
+    end
+
+    # includes all fund_of_funds, mutual_funds, and open_end_funds
+    def funds
+      fund_of_funds.to_a +
+      mutual_funds.to_a +
+      open_end_funds.to_a
+    end
+
+    def indices
+      get_securities_from_predefined_file("Index/Equity Index")
+    end
+
     # predefined_file_security_type is one of the keys from the hash returned by #predefined_files
     def get_securities_from_predefined_file(predefined_file_security_type, &blk)
       url = predefined_files[predefined_file_security_type]

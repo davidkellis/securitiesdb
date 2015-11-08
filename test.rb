@@ -8,7 +8,10 @@ def main
 
   # pp Bsym::Client.new.exchange_codes
   # pp Bsym::Client.new.security_types
-  puts Bsym::Client.new.predefined_files.values.all? {|url| url.end_with?("20151107.txt.zip") }
+  # puts Bsym::Client.new.predefined_files
+  # pp Bsym::Client.new.mutual_funds.to_a
+  # pp Bsym::Client.new.get_securities_from_predefined_file("Equity/Closed-End Fund").count
+  # pp Bsym::Client.new.stocks.count
 end
 
 main

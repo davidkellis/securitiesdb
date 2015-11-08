@@ -3,6 +3,8 @@ securitiesdb
 
 ## Setup
 
+0. Install Firefox (the Bsym library screen scrapes http://bsym.bloomberg.com/sym/ via the watir-webdriver gem + Firefox)
+
 1. Install ruby 2.2.3
    ```
    rbenv install 2.2.3
