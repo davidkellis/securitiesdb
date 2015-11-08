@@ -1,0 +1,3 @@
+#!/bin/bash
+
+dropdb securitiesdb -h localhost

@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+
+require 'irb'
+require_relative '../application'
+
+def main
+  Application.load_config(ARGV.first || Application::DEFAULT_CONFIG_FILE_PATH)
+  # Application.load(ARGV.first || Application::DEFAULT_CONFIG_FILE_PATH)
+  IRB.start
+end
+
+main if __FILE__ == $0

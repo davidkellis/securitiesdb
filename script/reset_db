@@ -1,0 +1,3 @@
+#!/bin/bash
+
+drop_db && setup_db

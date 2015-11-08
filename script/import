@@ -1,0 +1,5 @@
+#!/bin/bash
+
+ruby importers/import_securities.rb
+ruby importers/import_eod_bars.rb
+ruby importers/import_dividends_and_splits.rb
