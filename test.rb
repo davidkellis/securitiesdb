@@ -8,10 +8,12 @@ def main
 
   # pp Bsym::Client.new.exchange_codes
   # pp Bsym::Client.new.security_types
-  # puts Bsym::Client.new.predefined_files
+  # pp Bsym::Client.new.security_types.count
+  # pp Bsym::Client.new.predefined_files
   # pp Bsym::Client.new.mutual_funds.to_a
   # pp Bsym::Client.new.get_securities_from_predefined_file("Equity/Closed-End Fund").count
-  # pp Bsym::Client.new.stocks.count
+  # pp Bsym::Client.new.get_securities_from_predefined_file("Commodity/Financial commodity future.").to_a
+  # pp Bsym::Client.new.stocks.first
 end
 
 main

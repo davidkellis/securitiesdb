@@ -52,16 +52,16 @@ module Bsym
 
   ExchangeCode = Struct.new(:composite_exchange_code, :composite_exchange_name, :local_exchange_code, :local_exchange_name)
 
-  # Security fields:
+  # Security fields (for more info about what each field means, see http://bsym.bloomberg.com/sym/pages/bsym-whitepaper.pdf):
   # "NAME",                    # name
   # "ID_BB_SEC_NUM_DES",       # ticker
   # "FEED_SOURCE",             # pricing source === exchange label
-  # "ID_BB_SEC_NUM_SRC",       # BSID (=== id of pricing source)
-  # "ID_BB_UNIQUE",            # unique id
-  # "SECURITY_TYP",            # security type
-  # "MARKET_SECTOR_DES",       # market sector (e.g. Equity/Bond/etc.)
-  # "ID_BB_GLOBAL",            # bloomberg global id (unique per security per exchange)
-  # "COMPOSITE_ID_BB_GLOBAL",  # bloomberg global composite id (unique per security - shared across exchanges)
+  # "ID_BB_SEC_NUM_SRC",       # irrelevant - BSID (Bloomberg Security ID Number with Source) - e.g. 1095270768082
+  # "ID_BB_UNIQUE",            # irrelevant - unique id - e.g. IX26248014-0
+  # "SECURITY_TYP",            # security type - corresponds to the Bloomberg Yellow Key - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+  # "MARKET_SECTOR_DES",       # market sector (e.g. Equity/Bond/etc.) - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+  # "ID_BB_GLOBAL",            # FIGI (formerly BBGID) - bloomberg global id (unique per security per exchange) - e.g. BBG009T64180
+  # "COMPOSITE_ID_BB_GLOBAL",  # bloomberg global composite id (unique per security - shared across exchanges) - **not always defined** - e.g. BBG000GGBTC7
   # "FEED_EID1",
   # "FEED_EID2",
   # "FEED_EID3",
@@ -89,23 +89,16 @@ module Bsym
     SECURITY_TYPES_URL = "http://bsym.bloomberg.com/sym/pages/security_type.csv"
     SECURITY_TYPES_HEADER_ROW = "Market Sector,Security Type"
 
-    PREDEFINED_FILES = {
-      common_stock: "http://bdn-ak.bloomberg.com/precanned/Equity_Common_Stock_<DATE>.txt.zip",
-      equity_index: "http://bdn-ak.bloomberg.com/precanned/Index_Equity_Index_<DATE>.txt.zip",
-      etp: "http://bdn-ak.bloomberg.com/precanned/Equity_ETP_<DATE>.txt.zip",
-      fund_of_funds: "http://bdn-ak.bloomberg.com/precanned/Equity_Fund_of_Funds_<DATE>.txt.zip",
-      mutual_fund: "http://bdn-ak.bloomberg.com/precanned/Equity_Mutual_Fund_<DATE>.txt.zip",
-      open_end_fund: "http://bdn-ak.bloomberg.com/precanned/Equity_Open-End_Fund_<DATE>.txt.zip"
-    }
-    SECURITIES_LIST_HEADER_ROW = ["NAME",
-                                  "ID_BB_SEC_NUM_DES",
-                                  "FEED_SOURCE",
-                                  "ID_BB_SEC_NUM_SRC",
-                                  "ID_BB_UNIQUE",
-                                  "SECURITY_TYP",
-                                  "MARKET_SECTOR_DES",
-                                  "ID_BB_GLOBAL",
-                                  "COMPOSITE_ID_BB_GLOBAL",
+    # for more info about what each field means, see http://bsym.bloomberg.com/sym/pages/bsym-whitepaper.pdf
+    SECURITIES_LIST_HEADER_ROW = ["NAME",                     # name
+                                  "ID_BB_SEC_NUM_DES",        # ticker
+                                  "FEED_SOURCE",              # pricing source === exchange label
+                                  "ID_BB_SEC_NUM_SRC",        # irrelevant - BSID (Bloomberg Security ID Number with Source) - e.g. 1095270768082
+                                  "ID_BB_UNIQUE",             # irrelevant - unique id - e.g. IX26248014-0
+                                  "SECURITY_TYP",             # security type - corresponds to the Bloomberg Yellow Key - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+                                  "MARKET_SECTOR_DES",        # market sector (e.g. Equity/Bond/etc.) - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+                                  "ID_BB_GLOBAL",             # FIGI (formerly BBGID) - bloomberg global id (unique per security per exchange) - e.g. BBG009T64180
+                                  "COMPOSITE_ID_BB_GLOBAL",   # bloomberg global composite id (unique per security - shared across exchanges) - **not always defined** - e.g. BBG000GGBTC7
                                   "FEED_EID1",
                                   "FEED_EID2",
                                   "FEED_EID3",
@@ -351,12 +344,12 @@ module Bsym
     # ["NAME",                    # name
     #  "ID_BB_SEC_NUM_DES",       # ticker
     #  "FEED_SOURCE",             # pricing source === exchange label
-    #  "ID_BB_SEC_NUM_SRC",       # BSID (=== id of pricing source)
-    #  "ID_BB_UNIQUE",            # unique id
-    #  "SECURITY_TYP",            # security type
-    #  "MARKET_SECTOR_DES",       # market sector (e.g. Equity/Bond/etc.)
-    #  "ID_BB_GLOBAL",            # FIGI (formerly BBGID) - bloomberg global id (unique per security per exchange)
-    #  "COMPOSITE_ID_BB_GLOBAL",  # bloomberg global composite id (unique per security - shared across exchanges)
+    #  "ID_BB_SEC_NUM_SRC",       # irrelevant - BSID (Bloomberg Security ID Number with Source) - e.g. 1095270768082
+    #  "ID_BB_UNIQUE",            # irrelevant - unique id - e.g. IX26248014-0
+    #  "SECURITY_TYP",            # security type - corresponds to the Bloomberg Yellow Key - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+    #  "MARKET_SECTOR_DES",       # market sector (e.g. Equity/Bond/etc.) - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+    #  "ID_BB_GLOBAL",            # FIGI (formerly BBGID) - bloomberg global id (unique per security per exchange) - e.g. BBG009T64180
+    #  "COMPOSITE_ID_BB_GLOBAL",  # bloomberg global composite id (unique per security - shared across exchanges) - **not always defined** - e.g. BBG000GGBTC7
     #  "FEED_EID1",
     #  "FEED_EID2",
     #  "FEED_EID3",

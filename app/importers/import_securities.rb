@@ -1,7 +1,5 @@
 require 'date'
-require 'watir-webdriver'
 require 'pp'
-require_relative '../application'
 
 class SecurityImporter
   def initialize
@@ -23,7 +21,7 @@ class SecurityImporter
     import_securities(security_downloader.etps.select(&selection_predicate), Etp)
     import_securities(security_downloader.funds.select(&selection_predicate), Fund)
     import_securities(security_downloader.indices.select(&selection_predicate), Index)
-    
+
     import_custom_securities
   end
 
@@ -42,11 +40,11 @@ class SecurityImporter
         puts "Exchange errors: #{exchange.errors.full_messages.join("\n")}"
       end
     end
-    
+
     puts "Creating user-defined exchanges"
     create_or_update_exchange("DKE", "DKE")
   end
-  
+
   def create_or_update_exchange(name, label)
     existing_exchange = Exchange.first(label: label)
     begin
@@ -64,7 +62,7 @@ class SecurityImporter
     puts "Importing #{security_class.name} securities."
     security_records.each {|security_record| import_security(security_record, security_class) }
   end
-  
+
   def import_security(security_record, security_class)
     existing_security = security_class.where(:figi => security_record.figi).first
     if existing_security
@@ -106,13 +104,13 @@ class SecurityImporter
   def lookup_exchange(label)
     @exchange_memo[label] ||= Exchange.where(label: label).first
   end
-  
+
   def import_custom_securities
     puts "Importing user-defined securities."
     create_or_update_security(Index, "CBOE", "BBGDKE1", "BBGDKE1", "CBOE 1 Month SPX Volatility Index", "^VIX")
     create_or_update_security(Index, "CBOE", "BBGDKE2", "BBGDKE2", "CBOE 3 Month SPX Volatility Index", "^VXV")
   end
-  
+
   def create_or_update_security(security_class, exchange_label, figi, bb_gcid, name, symbol)
     exchange = lookup_exchange(exchange_label)
     existing_security = security_class.where(:figi => figi).first

@@ -84,25 +84,14 @@ class Application
     end
 
     def require_files
+      require_relative 'lib/bsym'
+
       require_relative 'app/data_model'
       require_relative 'app/date'
       require_relative 'app/stats'
       require_relative 'app/time'
-      require_relative 'lib/bsym'
 
-      # require_relative 'downloaders/fundamental_data_downloader'
-      # require_relative 'downloaders/profile_downloader'
-      # require_relative 'downloaders/split_history_downloader'
-      # require_relative 'downloaders/security_downloader'
-      # require_relative 'protobuf/tradesim.pb'
-      #require_relative 'importers/import_annual_reports'
-      #require_relative 'importers/import_dividends'
-      #require_relative 'importers/import_eod_bars'
-      #require_relative 'importers/import_profiles'
-      #require_relative 'importers/import_quarterly_reports'
-      #require_relative 'importers/import_securities'
-      #require_relative 'importers/import_splits'
-
+      require_relative 'app/importers/import_securities'
     end
 
   end

@@ -27,29 +27,32 @@ Sequel.migration do
       index :name, :unique => true
     end
 
+    create_table :security_types do
+      primary_key :id
+      String :name, :size => 255, :null => false
+      String :market_sector, :size => 255
+
+      index :id, :unique => true
+      index :name, :unique => true
+    end
+
     create_table :securities do
       primary_key :id
       foreign_key :exchange_id, :exchanges, :null => true
+      foreign_key :security_type_id, :security_types, :null => true
       foreign_key :industry_id, :industries, :null => true
       foreign_key :sector_id, :sectors, :null => true
-      String :type, :null => false, :size => 30
-      String :figi, :size => 12       # figi = financial instrument global identifier - formerly bb_gid - bloomberg global id - unique per security per exchange
-      String :bb_gcid, :size => 12    # bloomberg global composite id - unique per security (but shared across exchanges)
-      String :symbol, :null => false, :size => 15
       String :name, :size => 255
-      Integer :start_date
-      Integer :end_date
-      Integer :cik
-      Integer :fiscal_year_end_date
-      TrueClass :active, :default => false
+      String :symbol, :null => false, :size => 15
+      String :figi, :size => 12       # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
+      String :bbgcid, :size => 12     # bloomberg global composite id - unique per security (but shared across exchanges)
+
+      # Integer :start_date
+      # Integer :end_date, :null => true
 
       index :id, :unique => true
       index :figi, :unique => true
-      index :bb_gcid
-      index :symbol
-      index :exchange_id
-      index :industry_id
-      index :sector_id
+      index [:exchange_id, :symbol]
     end
 
     create_table :eod_bars do
@@ -68,19 +71,27 @@ Sequel.migration do
       index [:security_id, :start_time], :unique => true
     end
 
+    create_table :corporate_action_types do
+      primary_key :id
+      String :name, :size => 20, :null => false
+
+      index :id, :unique => true
+    end
+
+    # todo - finish this table
     create_table :corporate_actions do
       primary_key :id
       foreign_key :security_id, :securities, :null => false
-      String :type, :null => false, :size => 30
+      foreign_key :corporate_action_type_id, :corporate_action_types, :null => false
       Integer :ex_date, :null => false
       Integer :declaration_date
       Integer :record_date
       Integer :payable_date
-      BigDecimal :number, :size=>[30, 15], :null => false     # todo: figure out how to map :ratio_or_amount to "number" field
+      BigDecimal :adjustment_ratio, :size=>[30, 15], :null => false     # splits are recorded as a decimal approximation of the ratio of "new float" / "old float"
 
       index :id, :unique => true
+      index [:corporate_action_type_id, :security_id, :ex_date], :unique => true
       index :security_id
-      index [:type, :security_id, :ex_date], :unique => true
     end
 
     create_table :quarterly_reports do

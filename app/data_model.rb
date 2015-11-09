@@ -59,17 +59,18 @@ class Sector < Sequel::Model
   one_to_many :securities
 end
 
-class Security < Sequel::Model
-  plugin :single_table_inheritance, :type
+class SecurityType < Sequel::Model
+  one_to_many :securities
+end
 
+class Security < Sequel::Model
   one_to_many :eod_bars
   one_to_many :corporate_actions
-  one_to_many :cash_dividends
-  one_to_many :splits
   one_to_many :annual_reports
   one_to_many :quarterly_reports
 
   many_to_one :exchange
+  many_to_one :security_type
   many_to_one :industry
   many_to_one :sector
 
@@ -120,32 +121,28 @@ class Security < Sequel::Model
   end
 end
 
-class Stock < Security
-end
+Security.dataset_module do
+  def cash_dividends
+    # todo: ???
+  end
 
-class Etp < Security
-end
-
-class Fund < Security
-end
-
-class Index < Security
+  def splits
+    # todo: ???
+  end
 end
 
 class EodBar < Sequel::Model
   many_to_one :security
 end
 
+class CorporateActionTypes < Sequel::Model
+  one_to_many :corporate_actions
+end
+
+  # todo - finish this model
 class CorporateAction < Sequel::Model
-  plugin :single_table_inheritance, :type
-
   many_to_one :security
-end
-
-class Split < CorporateAction
-end
-
-class CashDividend < CorporateAction
+  many_to_one :corporate_action_type
 end
 
 class QuarterlyReport < Sequel::Model
