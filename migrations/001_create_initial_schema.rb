@@ -47,12 +47,12 @@ Sequel.migration do
       String :figi, :size => 12       # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
       String :bbgcid, :size => 12     # bloomberg global composite id - unique per security (but shared across exchanges)
 
-      # Integer :start_date
-      # Integer :end_date, :null => true
+      Integer :start_date
+      Integer :end_date, :null => true
 
       index :id, :unique => true
       index :figi, :unique => true
-      index [:exchange_id, :symbol]
+      index [:exchange_id, :symbol, :start_date]
     end
 
     create_table :eod_bars do
