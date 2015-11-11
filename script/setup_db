@@ -1,3 +1,3 @@
 #!/bin/bash
 
-createdb securitiesdb -h localhost && migrate && seed
+create_db && migrate && seed
