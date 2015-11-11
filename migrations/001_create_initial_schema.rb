@@ -47,7 +47,7 @@ Sequel.migration do
       String :figi, :size => 12       # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
       String :bbgcid, :size => 12     # bloomberg global composite id - unique per security (but shared across exchanges)
 
-      Integer :start_date
+      Integer :start_date, :null => true
       Integer :end_date, :null => true
 
       index :id, :unique => true
@@ -78,7 +78,6 @@ Sequel.migration do
       index :id, :unique => true
     end
 
-    # todo - finish this table
     create_table :corporate_actions do
       primary_key :id
       foreign_key :security_id, :securities, :null => false
@@ -94,173 +93,58 @@ Sequel.migration do
       index :security_id
     end
 
-    create_table :quarterly_reports do
-      primary_key :id
-      foreign_key :security_id, :securities, :null => false
-      Bignum :start_time, :null => false
-      Bignum :end_time, :null => false
-      Bignum :publication_time, :null => false
-      File :income_statement, :null => false
-      File :balance_sheet, :null => false
-      File :cash_flow_statement, :null => false
-
-      index :id, :unique => true
-      index :security_id
-      index :publication_time
-      index [:security_id, :end_time], :unique => true
-    end
-
-    create_table :annual_reports do
-      primary_key :id
-      foreign_key :security_id, :securities, :null => false
-      Bignum :start_time, :null => false
-      Bignum :end_time, :null => false
-      Bignum :publication_time, :null => false
-      File :income_statement, :null => false
-      File :balance_sheet, :null => false
-      File :cash_flow_statement, :null => false
-
-      index :id, :unique => true
-      index :security_id
-      index :publication_time
-      index [:security_id, :end_time], :unique => true
-    end
-
-    create_table :strategies do
+    create_table :fundamental_attributes do
       primary_key :id
       String :name, :size => 255, :null => false
+      String :description, :text => true, :null => true
 
       index :id, :unique => true
       index :name, :unique => true
     end
 
-    create_table :trial_sets do
+    create_table :fundamentals do
       primary_key :id
-      foreign_key :strategy_id, :strategies, :null => false
-      BigDecimal :principal, :size=>[30, 2]
-      BigDecimal :commission_per_trade, :size=>[30, 2]
-      BigDecimal :commission_per_share, :size=>[30, 2]
-      String :duration, :size => 12
+      foreign_key :security_id, :securities, :null => false
+      foreign_key :fundamental_attribute_id, :fundamental_attributes, :null => false
+      BigDecimal :value, :size=>[30, 9], :null => false
+      Integer :start_date, :null => false
 
       index :id, :unique => true
-      index :strategy_id
+      index [:security_id, :fundamental_attribute_id, :start_date], :unique => true
+      index [:fundamental_attribute_id, :security_id, :start_date]
     end
 
-    create_join_table(:trial_set_id => :trial_sets, :security_id => :securities)    # creates securities_trial_sets join table
-
-    create_table :trials do
-      primary_key :id
-      foreign_key :trial_set_id, :trial_sets, :null => false
-      Bignum :start_time, :null => false
-      Bignum :end_time, :null => false
-      File :transaction_log, :null => false
-      File :portfolio_value_log, :null => false
-
-      BigDecimal :yield
-      BigDecimal :mfe           # maximum favorable excursion
-      BigDecimal :mae           # maximum adverse excursion
-      BigDecimal :daily_std_dev
-
-      index :id, :unique => true
-      index :trial_set_id
-    end
-
-    create_table :trial_set_distribution_types do
-      primary_key :id
-      String :name, :null => false
-    end
-
-    create_table :trial_set_distributions do
-      primary_key :id
-      foreign_key :trial_set_id, :trial_sets, :null => false
-      foreign_key :trial_set_distribution_type_id, :trial_set_distribution_types, :null => false
-      String :attribute, :null => false
-      Bignum :start_time, :null => false
-      Bignum :end_time, :null => false
-      File :distribution, :null => false
-
-      Integer :n
-      BigDecimal :average
-      BigDecimal :min
-      BigDecimal :max
-      BigDecimal :percentile_1
-      BigDecimal :percentile_5
-      BigDecimal :percentile_10
-      BigDecimal :percentile_15
-      BigDecimal :percentile_20
-      BigDecimal :percentile_25
-      BigDecimal :percentile_30
-      BigDecimal :percentile_35
-      BigDecimal :percentile_40
-      BigDecimal :percentile_45
-      BigDecimal :percentile_50
-      BigDecimal :percentile_55
-      BigDecimal :percentile_60
-      BigDecimal :percentile_65
-      BigDecimal :percentile_70
-      BigDecimal :percentile_75
-      BigDecimal :percentile_80
-      BigDecimal :percentile_85
-      BigDecimal :percentile_90
-      BigDecimal :percentile_95
-      BigDecimal :percentile_99
-    end
-
-    create_table :sampling_distributions do
-      primary_key :id
-      foreign_key :trial_set_distribution_id, :trial_set_distributions, :null => false
-      String :sample_statistic, :null => false
-      File :distribution, :null => false
-
-      Integer :n
-      BigDecimal :average
-      BigDecimal :min
-      BigDecimal :max
-      BigDecimal :percentile_1
-      BigDecimal :percentile_5
-      BigDecimal :percentile_10
-      BigDecimal :percentile_15
-      BigDecimal :percentile_20
-      BigDecimal :percentile_25
-      BigDecimal :percentile_30
-      BigDecimal :percentile_35
-      BigDecimal :percentile_40
-      BigDecimal :percentile_45
-      BigDecimal :percentile_50
-      BigDecimal :percentile_55
-      BigDecimal :percentile_60
-      BigDecimal :percentile_65
-      BigDecimal :percentile_70
-      BigDecimal :percentile_75
-      BigDecimal :percentile_80
-      BigDecimal :percentile_85
-      BigDecimal :percentile_90
-      BigDecimal :percentile_95
-      BigDecimal :percentile_99
-    end
-
-
-    alter_table :trial_set_distributions do
-      add_index :id, :unique => true
-      add_index :trial_set_id
-      add_index :trial_set_distribution_type_id
-    end
-
-    create_table :sample_statistics do
-      primary_key :id
-      String :name, :null => false
-
-      index :id, :unique => true
-    end
-
-    alter_table :sampling_distributions do
-      drop_column :sample_statistic
-      add_foreign_key :sample_statistic_id, :sample_statistics, :null => false
-
-      add_index :id, :unique => true
-      add_index :trial_set_distribution_id
-      add_index :sample_statistic_id
-    end
+    # create_table :quarterly_reports do
+    #   primary_key :id
+    #   foreign_key :security_id, :securities, :null => false
+    #   Bignum :start_time, :null => false
+    #   Bignum :end_time, :null => false
+    #   Bignum :publication_time, :null => false
+    #   File :income_statement, :null => false
+    #   File :balance_sheet, :null => false
+    #   File :cash_flow_statement, :null => false
+    #
+    #   index :id, :unique => true
+    #   index :security_id
+    #   index :publication_time
+    #   index [:security_id, :end_time], :unique => true
+    # end
+    #
+    # create_table :annual_reports do
+    #   primary_key :id
+    #   foreign_key :security_id, :securities, :null => false
+    #   Bignum :start_time, :null => false
+    #   Bignum :end_time, :null => false
+    #   Bignum :publication_time, :null => false
+    #   File :income_statement, :null => false
+    #   File :balance_sheet, :null => false
+    #   File :cash_flow_statement, :null => false
+    #
+    #   index :id, :unique => true
+    #   index :security_id
+    #   index :publication_time
+    #   index [:security_id, :end_time], :unique => true
+    # end
 
   end
 end

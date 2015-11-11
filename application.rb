@@ -46,10 +46,7 @@ class Application
 
   class << self
     def logger
-      @logger ||= begin
-        logger = Logger.new(STDOUT)
-        logger = Logger::INFO
-      end
+      @logger || configure_logger
     end
 
     def load_config(config_file_path = DEFAULT_CONFIG_FILE_PATH)
@@ -76,6 +73,8 @@ class Application
       end
 
       @logger.level = LOG_LEVEL_MAP[AppConfig.log_level.to_sym] || Logger::INFO
+
+      @logger
     end
 
     def configure_quandl
@@ -84,14 +83,16 @@ class Application
     end
 
     def require_files
-      require_relative 'lib/bsym'
-
       require_relative 'app/data_model'
       require_relative 'app/date'
       require_relative 'app/stats'
       require_relative 'app/time'
 
-      require_relative 'app/importers/import_securities'
+      require_relative 'app/clients/bsym'
+      require_relative 'app/clients/csidata'
+      require_relative 'app/clients/yahoofinance'
+      require_relative 'app/importers/bloomberg_symbology'
+      require_relative 'app/importers/csidata'
     end
 
   end

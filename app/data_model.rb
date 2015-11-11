@@ -13,6 +13,7 @@ class Exchange < Sequel::Model
     @cboe ||= where(label: "CBOE")
   end
 
+  # NYSE MKT - formerly the American Stock Exchange (AMEX)
   def self.amex
     @amex ||= where(label: "UA")
   end

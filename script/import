@@ -1,5 +1,45 @@
-#!/bin/bash
+#!/usr/bin/env ruby
 
-ruby importers/import_securities.rb
-ruby importers/import_eod_bars.rb
-ruby importers/import_dividends_and_splits.rb
+require_relative '../application'
+
+require "slop"
+
+def import_bsym
+  importer = BloombergSymbologyImporter.new
+  importer.import
+end
+
+def import_csi
+  importer = CsiDataImporter.new
+  importer.import
+end
+
+def main
+  opts = Slop.parse do |o|
+    o.bool '-b', '--bsym', 'Import Bloomberg Open Symbology - Exchanges and Symbols'
+    o.bool '-c', '--csi', 'Import CSI Data - Exchanges and Symbols'
+    o.on '--help' do
+      puts o
+      exit
+    end
+  end
+
+  import_functions = []
+
+  import_functions << :import_bsym if opts.bsym?
+  import_functions << :import_csi if opts.csi?
+
+  if import_functions
+    Application.load(ARGV.first || Application::DEFAULT_CONFIG_FILE_PATH)
+
+    import_functions.each {|fn_name| send(fn_name) }
+  end
+end
+
+main if __FILE__ == $0
+
+# #!/bin/bash
+#
+# ruby importers/import_securities.rb
+# ruby importers/import_eod_bars.rb
+# ruby importers/import_dividends_and_splits.rb

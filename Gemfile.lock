@@ -115,6 +115,7 @@ GEM
       roo (~> 2.1)
       roo-google (~> 1.0)
       roo-xls (~> 1.0)
+    slop (4.2.0)
     spreadsheet (1.0.8)
       ruby-ole (>= 1.0)
     thread_safe (0.3.5)
@@ -140,6 +141,7 @@ DEPENDENCIES
   sequel_pg
   settingslogic
   simple-spreadsheet
+  slop
   watir-webdriver
 
 BUNDLED WITH

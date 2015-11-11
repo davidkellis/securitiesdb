@@ -46,7 +46,7 @@ module Bsym
     BsymField.new("ID236", "ID_BB_GLOBAL_SHARE_CLASS_LEVEL", "Security Share Class Level Bloomberg Global Id")
   ].map {|f| [f.mnemonic, f] }.to_h
 
-  PricingSource = Struct.new(:yellow_key_database, :pricing_source, :description)
+  PricingSource = Struct.new(:yellow_key_database, :label, :description)
 
   SecurityType = Struct.new(:market_sector, :security_type)
 
@@ -116,9 +116,9 @@ module Bsym
 
     # returns the contents of http://bsym.bloomberg.com/sym/pages/pricing_source.xls as an array of PricingSource objects, of the form:
     # [
-    #   #<struct PricingSource yellow_key_database="Equity", pricing_source="A0", description="Asset Match MTF">,
-    #   #<struct PricingSource yellow_key_database="Equity, Index", pricing_source="AA", description="Athens Exchange Alternative Market">,
-    #   #<struct PricingSource yellow_key_database="Corporate, Government, Preferred", pricing_source="AABA", description="RBS HK & KR Government Bonds">,
+    #   #<struct PricingSource yellow_key_database="Equity", label="A0", description="Asset Match MTF">,
+    #   #<struct PricingSource yellow_key_database="Equity, Index", label="AA", description="Athens Exchange Alternative Market">,
+    #   #<struct PricingSource yellow_key_database="Corporate, Government, Preferred", label="AABA", description="RBS HK & KR Government Bonds">,
     #   ...
     # ]
     def pricing_sources
@@ -184,6 +184,7 @@ module Bsym
     #   #<struct SecurityType market_sector="Comdty", security_type="Financial commodity generic.">,
     #   ...
     # ]
+    # A security type is essentially equivalent to an asset class category.
     def security_types
       csv_contents = Net::HTTP.get(URI(SECURITY_TYPES_URL))
       rows = CSV.parse(csv_contents, headers: false, return_headers: false, skip_lines: /^(\s*,\s*)*$/)
@@ -359,6 +360,17 @@ module Bsym
     #  "Subscription String 2",
     #  "Subscription String 3"]
     # See http://bsym.bloomberg.com/sym/pages/bsym-whitepaper.pdf for explanation of each field
+    # Example security:
+    # <struct Bsym::Security
+    #   name="01 COMMUNIQUE LABORATORY INC",
+    #   ticker="OCQLF",
+    #   pricing_source="US",
+    #   bsid="399432597305",
+    #   unique_id="EQ0000000000088168",
+    #   security_type="Common Stock",
+    #   market_sector="Equity",
+    #   figi="BBG000GGBTC7",
+    #   composite_bbgid="BBG000GGBTC7">
     def convert_row_to_security(row)
       name, ticker, pricing_source, bsid, unique_id, security_type, market_sector, figi, composite_bbgid = *row[0..8]
 
