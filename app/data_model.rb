@@ -140,8 +140,10 @@ class CorporateActionTypes < Sequel::Model
   one_to_many :corporate_actions
 end
 
-  # todo - finish this model
+# todo - finish this model
 class CorporateAction < Sequel::Model
   many_to_one :security
   many_to_one :corporate_action_type
 end
+
+# todo - implement missing models
