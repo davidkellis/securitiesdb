@@ -32,11 +32,15 @@ class Exchange < Sequel::Model
   end
 
   def self.otc_bulletin_board
-    @otc ||= where(label: "UU")
+    @otc_bb ||= where(label: "UU")
   end
 
   def self.otc
-    @non_otc ||= where(label: "UV")
+    @otc ||= where(label: "UV")
+  end
+  
+  def self.otc_markets
+    @otc_markets ||= where(label: "PQ")
   end
 
   def self.us_composite
