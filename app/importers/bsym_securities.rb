@@ -3,7 +3,7 @@ require 'pp'
 
 require_relative "../clients/bsym"
 
-class BloombergSymbologyImporter
+class BsymSecuritiesImporter
   attr_accessor :bsym_client
 
   def initialize
@@ -18,8 +18,6 @@ class BloombergSymbologyImporter
   end
 
   def import(exchanges_to_import = Exchange.us_exchanges)
-    import_exchanges(bsym_client.pricing_sources)
-
     exchange_labels = exchanges_to_import.map(&:label)
     selection_predicate = ->(bsym_security) { exchange_labels.include?(bsym_security.pricing_source) }
 
@@ -29,27 +27,6 @@ class BloombergSymbologyImporter
     import_securities(bsym_client.indices.select(&selection_predicate), "Index")
 
     # import_custom_securities
-  end
-
-  def import_exchanges(pricing_sources)
-    log "Importing Bloomberg pricing sources as exchanges."
-    pricing_sources.each {|pricing_source| create_or_update_exchange(pricing_source.description, pricing_source.label) }
-
-    # log "Creating user-defined exchanges"
-    # create_or_update_exchange("DKE", "DKE")
-  end
-
-  def create_or_update_exchange(name, label)
-    existing_exchange = Exchange.first(label: label)
-    begin
-      if existing_exchange
-        existing_exchange.update(name: name, label: label)
-      else
-        Exchange.create(name: name, label: label)
-      end
-    rescue => e
-      log "Can't import exchange (name=#{name} label=#{label}): #{e.message}"
-    end
   end
 
   def import_securities(bsym_securities, asset_class_category)

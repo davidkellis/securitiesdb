@@ -91,7 +91,8 @@ class Application
       require_relative 'app/clients/bsym'
       require_relative 'app/clients/csidata'
       require_relative 'app/clients/yahoofinance'
-      require_relative 'app/importers/bloomberg_symbology'
+      require_relative 'app/importers/bsym_exchanges'
+      require_relative 'app/importers/bsym_securities'
       require_relative 'app/importers/csidata'
     end
 

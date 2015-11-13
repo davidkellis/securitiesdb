@@ -38,7 +38,7 @@ class Exchange < Sequel::Model
   def self.otc
     @otc ||= where(label: "UV")
   end
-  
+
   def self.otc_markets
     @otc_markets ||= where(label: "PQ")
   end

@@ -5,7 +5,10 @@ require_relative '../application'
 require "slop"
 
 def import_bsym
-  importer = BloombergSymbologyImporter.new
+  importer = BsymExchangesImporter.new
+  importer.import
+
+  importer = BsymSecuritiesImporter.new
   importer.import
 end
 
