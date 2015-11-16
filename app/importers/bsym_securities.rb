@@ -67,16 +67,16 @@ class BsymSecuritiesImporter
                                                                   existing_security.security_type.name != bsym_security.security_type
         replacement_attributes[:name] = bsym_security.name if existing_security.name != bsym_security.name
         replacement_attributes[:symbol] = bsym_security.ticker if existing_security.symbol != bsym_security.ticker
-        replacement_attributes[:bbgcid] = bsym_security.composite_bbgid if existing_security.bbgcid != bsym_security.composite_bbgid
+        replacement_attributes[:bbgid_composite] = bsym_security.composite_bbgid if existing_security.bbgid_composite != bsym_security.composite_bbgid
 
         existing_security.update(replacement_attributes)
       else
         Security.create(
-          figi: figi,
-          bb_gcid: bb_gcid,
-          name: name,
-          symbol: symbol,
-          exchange: exchange ? exchange : []
+          figi: bsym_security.figi,
+          bbgid_composite: bsym_security.composite_bbgid,
+          name: bsym_security.name,
+          symbol: bsym_security.ticker,
+          exchange: exchange
         )
       end
     else

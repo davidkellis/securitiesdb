@@ -26,8 +26,9 @@ class BsymExchangesImporter
     log "Importing Bloomberg pricing sources as exchanges."
     pricing_sources.each {|pricing_source| create_or_update_exchange(pricing_source.description, pricing_source.label) }
 
-    # log "Creating user-defined exchanges"
-    # create_or_update_exchange("DKE", "DKE")
+    log "Creating user-defined exchanges."
+    create_or_update_exchange("Indices", "INDEX")
+    create_or_update_exchange("Mutual Funds", "MUTUAL")
   end
 
   def create_or_update_exchange(name, label)
@@ -36,7 +37,7 @@ class BsymExchangesImporter
       if existing_exchange
         existing_exchange.update(name: name, label: label)
       else
-        Exchange.create(name: name, label: label)
+        Exchange.create(name: name, label: label, is_composite_exchange: false)
       end
     rescue => e
       log "Can't import exchange (name=#{name} label=#{label}): #{e.message}"
@@ -48,12 +49,13 @@ class BsymExchangesImporter
     exchange_codes_by_composite_exchange_code = exchange_codes.group_by(&:composite_exchange_code)
     exchange_codes_by_composite_exchange_code.each do |composite_exchange_label, exchange_code_list|
       composite_exchange = Exchange.first(label: composite_exchange_label)
+      composite_exchange_id = composite_exchange.id if composite_exchange
       constituent_exchange_labels = exchange_code_list.map(&:local_exchange_code).compact.sort
-      unless constituent_exchange_labels.empty?
-        Exchange.where(label: constituent_exchange_labels).update(composite_exchange: true, constituent_exchange_labels: nil)
+      if !constituent_exchange_labels.empty?
+        Exchange.where(label: constituent_exchange_labels).update(is_composite_exchange: false, composite_exchange_id: composite_exchange_id)
       end
       if composite_exchange
-        composite_exchange.update(composite_exchange: true, constituent_exchange_labels: constituent_exchange_labels.join(","))
+        composite_exchange.update(is_composite_exchange: true, composite_exchange_id: nil)
       end
     end
   end

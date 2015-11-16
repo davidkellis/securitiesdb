@@ -7,8 +7,8 @@ Sequel.migration do
       String :label, size: 50, null: false
       String :name, size: 255
 
-      TrueClass :composite_exchange, null: false
-      String :constituent_exchange_labels, size: 255        # this is a comma-delimited-list of exchange labels that represent this composite exchange's constituent local exchanges
+      TrueClass :is_composite_exchange, null: false
+      foreign_key :composite_exchange_id, :exchanges, null: true
 
       index :id, unique: true
       index :label, unique: true
@@ -47,8 +47,9 @@ Sequel.migration do
       foreign_key :sector_id, :sectors, null: true
       String :name, size: 255
       String :symbol, null: false, size: 15
-      String :figi, size: 12       # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
-      String :bbgcid, size: 12     # bloomberg global composite id - unique per security (but shared across exchanges)
+      String :figi, size: 12              # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
+      String :bbgid_composite, size: 12   # bloomberg global composite id - unique per security (but shared across exchanges within the same composite exchange)
+      Integer :csi_number, null: true     # CSI Number (identifier from csidata.com)
 
       TrueClass :primary_listing, null: false
       Integer :start_date, null: true

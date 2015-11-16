@@ -8,6 +8,9 @@ POSTGRES_BIGINT_MAX = 2**63-1
 class Exchange < Sequel::Model
   one_to_many :securities
 
+  many_to_one :composite_exchange, class: self
+  one_to_many :constituent_exchanges, key: :composite_exchange_id, class: self
+
   # CBOE - Chicago Board Options Exchange
   def self.cboe
     @cboe ||= where(label: "CBOE")
@@ -20,9 +23,9 @@ class Exchange < Sequel::Model
 
   # see http://www.nasdaqomx.com/transactions/markets/nasdaq
   # The NASDAQ Stock Market is comprised of three market tiers:
-  # - The NASDAQ Global Select Market (bloomberg: UW)
-  # - The NASDAQ Global Market (formerly the NASDAQ National Market) (bloomberg: UQ)
-  # - The NASDAQ Capital Market (formerly the NASDAQ SmallCap Market) (bloomberg: UR)
+  # - The NASDAQ Global Select Market (bloomberg: UW) - most exclusive Nasdaq market
+  # - The NASDAQ Global Market (formerly the NASDAQ National Market) (bloomberg: UQ) - more exclusive than Capital Market, less exclusive than Global Select Market
+  # - The NASDAQ Capital Market (formerly the NASDAQ SmallCap Market) (bloomberg: UR) - least exclusive Nasdaq Market
   def self.nasdaq
     @nasdaq ||= where(label: ["UW", "UQ", "UR"])
   end
@@ -43,16 +46,16 @@ class Exchange < Sequel::Model
     @otc_markets ||= where(label: "PQ")
   end
 
-  def self.us_composite
-    @us_composite ||= where(label: "US")
-  end
-
   def self.us_stock_exchanges
     amex.union(nasdaq).union(nyse)
   end
 
   def self.us_exchanges
-    us_stock_exchanges.union(cboe)
+    us_composite.first.constituent_exchanges
+  end
+
+  def self.us_composite
+    @us_composite ||= where(label: "US", is_composite_exchange: true)
   end
 end
 

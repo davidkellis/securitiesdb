@@ -34,20 +34,42 @@ module CsiData
 
     SYMBOL_LISTING_HEADER = "CsiNumber,Symbol,Name,Exchange,IsActive,StartDate,EndDate,Sector,Industry,ConversionFactor,SwitchCfDate,PreSwitchCf,LastVolume,Type,ChildExchange,Currency"
 
-    def stocks
-      get_securities_of_type(:amex) + get_securities_of_type(:nyse) + get_securities_of_type(:nasdaq_otc)
+    def amex
+      get_securities_of_type(:amex)
     end
 
-    def etps
-      get_securities_of_type(:etf) + get_securities_of_type(:etn)
+    def nyse
+      get_securities_of_type(:nyse)
     end
 
-    def funds
+    def nasdaq_otc
+      get_securities_of_type(:nasdaq_otc)
+    end
+
+    def etfs
+      get_securities_of_type(:etf)
+    end
+
+    def etns
+      get_securities_of_type(:etn)
+    end
+
+    def mutual_funds
       get_securities_of_type(:mutual_fund)
     end
 
-    def indices
+    def us_stock_indices
       get_securities_of_type(:us_stock_indices)
+    end
+
+    # all stocks
+    def stocks
+      amex + nyse + nasdaq_otc
+    end
+
+    # all ETPs
+    def etps
+      etfs + etns
     end
 
     # security_type is one of the keys from the CSV_URLS hash
