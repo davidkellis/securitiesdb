@@ -43,7 +43,7 @@ class BsymSecuritiesImporter
   end
 
   def lookup_security_type(market_sector, security_type)
-    @security_type_memo[label] ||= SecurityType.first(market_sector: market_sector, name: security_type)
+    @security_type_memo["#{market_sector}-#{security_type}"] ||= SecurityType.first(market_sector: market_sector, name: security_type)
   end
 
   # def import_custom_securities

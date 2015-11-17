@@ -158,7 +158,7 @@ class CsiDataImporter
     sector = find_or_create_sector(csi_security.sector)
     industry = find_or_create_industry(csi_security.industry)
     Security.create(
-      csi_number: csi_security.csi_number.to_i
+      csi_number: csi_security.csi_number.to_i,
       symbol: csi_security.symbol,
       name: csi_security.name,
       start_date: convert_date(csi_security.start_date),
