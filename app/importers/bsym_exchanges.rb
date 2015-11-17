@@ -27,6 +27,8 @@ class BsymExchangesImporter
     pricing_sources.each {|pricing_source| create_or_update_exchange(pricing_source.description, pricing_source.label) }
 
     log "Creating user-defined exchanges."
+    create_or_update_exchange("Stocks", "STOCK")
+    create_or_update_exchange("ETPs", "ETP")
     create_or_update_exchange("Indices", "INDEX")
     create_or_update_exchange("Mutual Funds", "MUTUAL")
   end

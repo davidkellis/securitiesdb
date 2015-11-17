@@ -86,7 +86,7 @@ module CsiData
       csv_contents = Net::HTTP.get(URI(url))
       rows = CSV.parse(csv_contents, headers: false, return_headers: false, skip_lines: /^(\s*,\s*)*$/)
       if rows.first.join(",") == SYMBOL_LISTING_HEADER
-        rows.drop(1).map {|row| Security.new(*row) }
+        rows.drop(1).map {|row| Security.new(*row.map(&:strip)) }
       else
         raise "The securities list in #{url} doesn't conform to the expected row structure of: #{SYMBOL_LISTING_HEADER}."
       end

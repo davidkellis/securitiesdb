@@ -51,7 +51,7 @@ Sequel.migration do
       String :bbgid_composite, size: 12   # bloomberg global composite id - unique per security (but shared across exchanges within the same composite exchange)
       Integer :csi_number, null: true     # CSI Number (identifier from csidata.com)
 
-      TrueClass :primary_listing, null: false
+      # TrueClass :primary_listing, null: false
       Integer :start_date, null: true
       Integer :end_date, null: true
 
@@ -81,6 +81,7 @@ Sequel.migration do
       String :name, size: 20, null: false
 
       index :id, unique: true
+      index :name, unique: true
     end
 
     create_table :corporate_actions do
@@ -107,7 +108,7 @@ Sequel.migration do
       index :name, unique: true
     end
 
-    create_table :fundamentals do
+    create_table :fundamental_data_points do
       primary_key :id
       foreign_key :security_id, :securities, null: false
       foreign_key :fundamental_attribute_id, :fundamental_attributes, null: false

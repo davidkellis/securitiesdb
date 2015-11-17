@@ -30,51 +30,108 @@ class CsiDataImporter
     import_etns
     import_mutual_funds
     import_us_stock_indices
-
-    import_securities(csi_client.stocks, "Stock")
-    import_securities(csi_client.etps, "ETP")
-    import_securities(csi_client.mutual_funds, "Fund")
-    import_securities(csi_client.us_stock_indices, "Index")
   end
 
   def import_amex
     log "Importing CSI Data symbols for AMEX."
-    us_composite_exchange = Exchange.us_composite
-    amex_exchange = Exchange.amex
     csi_securities = csi_client.amex
-    csi_securities.each do |csi_security|
-    end
+    composite_exchange = Exchange.us_composite
+    expected_constituent_exchanges = Exchange.amex
+    default_exchange = Exchange.catch_all_stock
+    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+  end
+
+  def import_nyse
+    log "Importing CSI Data symbols for NYSE."
+    csi_securities = csi_client.nyse
+    composite_exchange = Exchange.us_composite
+    expected_constituent_exchanges = Exchange.nyse
+    default_exchange = Exchange.catch_all_stock
+    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+  end
+
+  def import_nasdaq
+    log "Importing CSI Data symbols for Nasdaq + OTC."
+    csi_securities = csi_client.nasdaq_otc
+    composite_exchange = Exchange.us_composite
+    expected_constituent_exchanges = Exchange.nasdaq.to_a + Exchange.otc.to_a + Exchange.otc_markets.to_a + Exchange.otc_bulletin_board.to_a
+    default_exchange = Exchange.catch_all_stock
+    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+  end
+
+  def import_etfs
+    log "Importing CSI Data symbols for ETFs."
+    csi_securities = csi_client.etfs
+    composite_exchange = Exchange.us_composite
+    expected_constituent_exchanges = Exchange.cboe.to_a + Exchange.nyse.to_a + Exchange.amex.to_a + Exchange.nasdaq.to_a
+    default_exchange = Exchange.catch_all_etp
+    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+  end
+
+  def import_etns
+    log "Importing CSI Data symbols for ETNs."
+    csi_securities = csi_client.etns
+    composite_exchange = Exchange.us_composite
+    expected_constituent_exchanges = Exchange.cboe.to_a + Exchange.nyse.to_a + Exchange.amex.to_a + Exchange.nasdaq.to_a
+    default_exchange = Exchange.catch_all_etp
+    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+  end
+
+  def import_mutual_funds
+    log "Importing CSI Data symbols for Mutual Funds."
+    csi_securities = csi_client.mutual_funds
+    composite_exchange = Exchange.us_composite
+    expected_constituent_exchanges = Exchange.nyse.to_a + Exchange.amex.to_a + Exchange.nasdaq.to_a + Exchange.cboe.to_a
+    default_exchange = Exchange.catch_all_mutual
+    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
   end
 
   def import_us_stock_indices
     log "Importing CSI Data symbols for US Stock Indices."
-    us_composite_exchange = Exchange.us_composite
-    us_stock_indices = Exchange.us_stock_indices
-    csi_securities = csi_client.amex
-    csi_securities.each do |csi_security|
-    end
+    csi_securities = csi_client.us_stock_indices
+    composite_exchange = Exchange.us_composite
+    expected_constituent_exchanges = Exchange.nyse.to_a + Exchange.amex.to_a + Exchange.nasdaq.to_a + Exchange.cboe.to_a
+    default_exchange = Exchange.catch_all_index
+    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
   end
 
   def lookup_exchanges(csi_exchange_label)
     @exchange_memo[label] ||= Exchange.all(label: label)
   end
 
+  def import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+    all_exchanges = ([composite_exchange] + expected_constituent_exchanges + [default_exchange]).flatten.compact
+    csi_securities.each do |csi_security|
+      import_security(csi_security, composite_exchange, expected_constituent_exchanges, default_exchange, all_exchanges)
+    end
+  end
+
   # expected_constituent_exchanges is an array of constituent exchanges that make up, either in part or in whole, the given composite_exchange
   # default_exchange is not a composite exchange
-  def import_security(csi_security, composite_exchange, expected_constituent_exchanges, default_exchange)
-    exchanges = ([composite_exchange] + expected_constituent_exchanges + [default_exchange]).flatten.compact
+  def import_security(csi_security, composite_exchange, expected_constituent_exchanges, default_exchange, all_exchanges = nil)
+    exchanges = all_exchanges || ([composite_exchange] + expected_constituent_exchanges + [default_exchange]).flatten.compact
 
-    # 2. search for security in any of the exchanges found in (1)
-    securities = Security.where(exchange_id: exchanges.map(&:id))
+    # search for security in any of the exchanges found in (1)
+    securities = Security.where(exchange_id: exchanges.map(&:id)).to_a
 
     case securities.count
-    when 0        # if no securities found, create the security in default_exchange
-      create_security(csi_security)
-    when 1        # if one security found, update it
-    else # > 1    # if multiple securities found:
-      #   if security is in composite exchange, update the composite security
-      #   otherwise, security is in constituent exchange
-      #     identify the component exchange that is most preferred in the list of <expected_exchanges>, then update
+    when 0                                  # if no securities found, create the security in default_exchange
+      create_security(csi_security, default_exchange)
+    when 1                                  # if one security found, update it
+      security = securities.first
+      update_security(security, csi_security)
+    else # > 1                              # if multiple securities found:
+      composite_security = securities.detect {|security| security.exchange == composite_exchange }
+      if composite_security                 #   if security is in composite exchange, update the composite security
+        update_security(composite_security, csi_security)
+      else                                  #   otherwise, security is in constituent exchange, so identify the proper security
+        # we want to identify the security residing in the component exchange that is most preferred in the list of <expected_exchanges>, then update that security
+        constituent_exchange_to_rank = expected_constituent_exchanges.each_with_index.to_h
+        get_exchange_rank = ->(security) { constituent_exchange_to_rank[security.exchange] || 1_000_000_000 }
+        security_with_most_preferred_constituent_exchange = securities.min_by {|security| get_exchange_rank.(security) }
+
+        update_security(security_with_most_preferred_constituent_exchange, csi_security)
+      end
     end
   end
 
@@ -97,30 +154,53 @@ class CsiDataImporter
   #   :child_exchange,
   #   :currency
   # )
-  def create_security(csi_security)
-    # todo, resume work here
+  def create_security(csi_security, exchange)
+    sector = find_or_create_sector(csi_security.sector)
+    industry = find_or_create_industry(csi_security.industry)
     Security.create(
-      csi_number: csi_security.csi_number
+      csi_number: csi_security.csi_number.to_i
       symbol: csi_security.symbol,
       name: csi_security.name,
-      start_date: ,
-      end_date: ,
-      exchange: default_exchange,
+      start_date: convert_date(csi_security.start_date),
+      end_date: convert_date(csi_security.end_date),
+      exchange: exchange,
       sector: sector,
       industry: industry
     )
   end
 
-  def update_security(security, exchange)
+  # CsiData::Security is defined as
+  # Struct.new(
+  #   :csi_number,
+  #   :symbol,
+  #   :name,
+  #   :exchange,
+  #   :is_active,
+  #   :start_date,
+  #   :end_date,
+  #   :sector,
+  #   :industry,
+  #   :conversion_factor,
+  #   :switch_cf_date,
+  #   :pre_switch_cf,
+  #   :last_volume,
+  #   :type,
+  #   :child_exchange,
+  #   :currency
+  # )
+  def update_security(existing_security, csi_security)
     replacement_attributes = {}
-    replacement_attributes[:exchange] = exchange if existing_security.exchange &&
-                                                    existing_security.exchange.label != csi_security.pricing_source
-    replacement_attributes[:security_type] = security_type if existing_security.security_type &&
-                                                              existing_security.security_type.market_sector != csi_security.market_sector &&
-                                                              existing_security.security_type.name != csi_security.security_type
-    replacement_attributes[:name] = csi_security.name if existing_security.name != csi_security.name
+    replacement_attributes[:csi_number] = csi_security.csi_number if existing_security.csi_number != csi_security.csi_number
     replacement_attributes[:symbol] = csi_security.ticker if existing_security.symbol != csi_security.ticker
-    replacement_attributes[:bbgid_composite] = csi_security.composite_bbgid if existing_security.bbgid_composite != csi_security.composite_bbgid
+    replacement_attributes[:name] = csi_security.name if existing_security.name != csi_security.name
+    replacement_attributes[:start_date] = convert_date(csi_security.start_date) if existing_security.start_date != convert_date(csi_security.start_date)
+    replacement_attributes[:end_date] = convert_date(csi_security.end_date) if existing_security.end_date != convert_date(csi_security.end_date)
+
+    sector = find_or_create_sector(csi_security.sector)
+    replacement_attributes[:sector_id] = sector.id if existing_security.sector_id != sector.id
+
+    industry = find_or_create_industry(csi_security.industry)
+    replacement_attributes[:industry_id] = industry.id if existing_security.industry_id != industry.id
 
     existing_security.update(replacement_attributes)
   rescue Sequel::ValidationFailed, Sequel::HookFailed => e
@@ -129,4 +209,26 @@ class CsiDataImporter
     log "Can't import #{csi_security.inspect}: #{e.message}"
     log e.backtrace.join("\n")
   end
+
+
+  # csi_date is a string of the form "1993-02-01"
+  # returns the integer yyyymmdd representation of the csi_date
+  def convert_date(csi_date)
+    if csi_date
+      csi_date.gsub("-","").to_i unless csi_date.empty?
+    end
+  end
+
+  def find_or_create_sector(sector_name)
+    if sector_name
+      Sector.first(name: sector_name) || Sector.create(name: sector_name) unless sector_name.empty?
+    end
+  end
+
+  def find_or_create_industry(industry_name)
+    if industry_name
+      Industry.first(name: industry_name) or Industry.create(name: industry_name) unless industry_name.empty?
+    end
+  end
+
 end

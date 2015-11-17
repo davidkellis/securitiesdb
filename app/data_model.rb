@@ -51,11 +51,27 @@ class Exchange < Sequel::Model
   end
 
   def self.us_exchanges
-    us_composite.first.constituent_exchanges
+    us_composite.constituent_exchanges
   end
 
   def self.us_composite
-    @us_composite ||= where(label: "US", is_composite_exchange: true)
+    @us_composite ||= first(label: "US", is_composite_exchange: true)
+  end
+
+  def self.catch_all_index
+    @catch_all_index ||= first(label: "INDEX", is_composite_exchange: false)
+  end
+
+  def self.catch_all_mutual
+    @catch_all_mutual ||= first(label: "MUTUAL", is_composite_exchange: false)
+  end
+
+  def self.catch_all_stock
+    @catch_all_stock ||= first(label: "STOCK", is_composite_exchange: false)
+  end
+
+  def self.catch_all_etp
+    @catch_all_stock ||= first(label: "ETP", is_composite_exchange: false)
   end
 end
 
@@ -129,28 +145,46 @@ class Security < Sequel::Model
   end
 end
 
-Security.dataset_module do
-  def cash_dividends
-    # todo: ???
-  end
-
-  def splits
-    # todo: ???
-  end
-end
-
 class EodBar < Sequel::Model
   many_to_one :security
 end
 
-class CorporateActionTypes < Sequel::Model
+class CorporateActionType < Sequel::Model
   one_to_many :corporate_actions
+
+  def self.cash_dividend
+    first(name: "Cash Dividend")
+  end
+
+  def self.split
+    first(name: "Split")
+  end
 end
 
-# todo - finish this model
 class CorporateAction < Sequel::Model
   many_to_one :security
   many_to_one :corporate_action_type
 end
 
-# todo - implement missing models
+CorporateAction.dataset_module do
+  def cash_dividends
+    qualify.
+      join(:corporate_action_types, :id => :corporate_action_type_id).
+      where(Sequel.qualify(:corporate_action_types, :name) => CorporateActionType.cash_dividend.name)
+  end
+
+  def splits
+    qualify.
+      join(:security_types, :id => :security_type_id).
+      where(Sequel.qualify(:security_types, :name) => CorporateActionType.split.name)
+  end
+end
+
+class FundamentalAttributes < Sequel::Model
+  one_to_many :fundamental_data_points
+end
+
+class FundamentalDataPoint < Sequel::Model
+  many_to_one :security
+  many_to_one :fundamental_attribute
+end
