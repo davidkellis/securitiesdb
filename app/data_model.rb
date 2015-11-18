@@ -11,14 +11,18 @@ class Exchange < Sequel::Model
   many_to_one :composite_exchange, class: self
   one_to_many :constituent_exchanges, key: :composite_exchange_id, class: self
 
+  # NYSE MKT - formerly the American Stock Exchange (AMEX)
+  def self.amex
+    @amex ||= where(label: "UA")
+  end
+
   # CBOE - Chicago Board Options Exchange
   def self.cboe
     @cboe ||= where(label: "CBOE")
   end
 
-  # NYSE MKT - formerly the American Stock Exchange (AMEX)
-  def self.amex
-    @amex ||= where(label: "UA")
+  def self.dow_jones
+    @dow ||= where(label: "DJI")
   end
 
   # see http://www.nasdaqomx.com/transactions/markets/nasdaq
@@ -46,12 +50,19 @@ class Exchange < Sequel::Model
     @otc_markets ||= where(label: "PQ")
   end
 
+  def self.russell
+    @russell ||= where(label: ["RUSS", "RUSL"])
+  end
+
   def self.us_stock_exchanges
     amex.union(nasdaq).union(nyse)
   end
 
   def self.us_exchanges
-    us_composite.constituent_exchanges
+    us_composite.constituent_exchanges +
+      cboe.to_a +
+      dow_jones.to_a +
+      russell.to_a
   end
 
   def self.us_composite
@@ -90,15 +101,12 @@ end
 class Security < Sequel::Model
   one_to_many :eod_bars
   one_to_many :corporate_actions
-  one_to_many :annual_reports
-  one_to_many :quarterly_reports
+  one_to_many :fundamental_data_points
 
   many_to_one :exchange
   many_to_one :security_type
   many_to_one :industry
   many_to_one :sector
-
-  many_to_many :trial_sets, :join_table => :securities_trial_sets
 
   # CBOE - Chicago Board Options Exchange
   def self.cboe
@@ -142,6 +150,12 @@ class Security < Sequel::Model
 
   def self.us_exchanges
     us_stock_exchanges.union(cboe)
+  end
+
+  def self.indices
+    qualify.
+      join(:security_types, :id => :security_type_id).
+      where(Sequel.qualify(:security_types, :market_sector) => "Index")
   end
 end
 

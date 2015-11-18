@@ -30,7 +30,7 @@ class BsymSecuritiesImporter
   end
 
   def import_securities(bsym_securities, asset_class_category)
-    log "Importing Bloomberg symbols for asset class category #{asset_class_category}."
+    log "Importing #{bsym_securities.count} Bloomberg symbols for asset class category #{asset_class_category}."
     bsym_securities.each {|bsym_security| import_security(bsym_security) }
   end
 
@@ -42,8 +42,10 @@ class BsymSecuritiesImporter
     @exchange_memo[label] ||= Exchange.first(label: label)
   end
 
-  def lookup_security_type(market_sector, security_type)
-    @security_type_memo["#{market_sector}-#{security_type}"] ||= SecurityType.first(market_sector: market_sector, name: security_type)
+  def find_or_create_security_type(market_sector, security_type)
+    @security_type_memo["#{market_sector}-#{security_type}"] ||= begin
+      SecurityType.first(market_sector: market_sector, name: security_type) || SecurityType.create(market_sector: market_sector, name: security_type)
+    end
   end
 
   # def import_custom_securities
@@ -55,7 +57,7 @@ class BsymSecuritiesImporter
   # Bsym::Security is defined as Security = Struct.new(:name, :ticker, :pricing_source, :bsid, :unique_id, :security_type, :market_sector, :figi, :composite_bbgid)
   def create_or_update_security(bsym_security)
     exchange = lookup_exchange(bsym_security.pricing_source)
-    security_type = lookup_security_type(bsym_security.market_sector, bsym_security.security_type)
+    security_type = find_or_create_security_type(bsym_security.market_sector, bsym_security.security_type)
     if exchange && security_type
       existing_security = Security.first(figi: bsym_security.figi)
       if existing_security
@@ -76,7 +78,8 @@ class BsymSecuritiesImporter
           bbgid_composite: bsym_security.composite_bbgid,
           name: bsym_security.name,
           symbol: bsym_security.ticker,
-          exchange: exchange
+          exchange: exchange,
+          security_type: security_type
         )
       end
     else
