@@ -3,7 +3,10 @@ securitiesdb
 
 ## Setup
 
-0. Install Firefox (the Bsym library screen scrapes http://bsym.bloomberg.com/sym/ via the watir-webdriver gem + Firefox)
+Prerequisites:
+- Install Firefox (the Bsym library screen scrapes http://bsym.bloomberg.com/sym/ using the watir-webdriver gem + Firefox)
+- Install Postgres libraries so that step 2 can install the pg gem.
+
 
 1. Install ruby 2.2.3
    ```

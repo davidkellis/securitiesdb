@@ -7,6 +7,7 @@ gem "pg"
 gem "sequel_pg"
 
 gem "settingslogic"
+gem "logging"
 gem "slop"
 gem "json"
 # gem "beefcake"

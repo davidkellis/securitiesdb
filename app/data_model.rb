@@ -35,7 +35,11 @@ class Exchange < Sequel::Model
   end
 
   def self.nyse
-    @nyse ||= where(label: "UN")      # NYSE (not NYSE Arca)
+    @nyse ||= where(label: "UN")      # NYSE
+  end
+
+  def self.nyse_arca
+    @nyse ||= where(label: "UP")      # NYSE Arca
   end
 
   def self.otc_bulletin_board
@@ -59,7 +63,7 @@ class Exchange < Sequel::Model
   end
 
   def self.us_exchanges
-    us_composite.constituent_exchanges +
+    us_composite.constituent_exchanges +    # constituent_exchanges = ["PQ", "UA", "UB", "UC", "UD", "UE", "UF", "UL", "UM", "UN", "UO", "UP", "UQ", "UR", "UT", "UU", "UV", "UW", "UX", "VJ", "VK", "VY"]
       cboe.to_a +
       dow_jones.to_a +
       russell.to_a

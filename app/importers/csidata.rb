@@ -4,6 +4,9 @@ require 'pp'
 require_relative "../clients/csidata"
 
 class CsiDataImporter
+  UNKNOWN_INDUSTRY_NAME = "UNKNOWN"
+  UNKNOWN_SECTOR_NAME = "UNKNOWN"
+
   CSI_EXCHANGE_TO_EXCHANGE_LABEL_MAP = {
     "AMEX" => ["UA"],
     "NYSE" => ["UN"],
@@ -36,7 +39,7 @@ class CsiDataImporter
     log "Importing CSI Data symbols for AMEX."
     csi_securities = csi_client.amex
     composite_exchange = Exchange.us_composite
-    expected_constituent_exchanges = Exchange.amex
+    expected_constituent_exchanges = Exchange.amex.to_a
     default_exchange = Exchange.catch_all_stock
     import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
   end
@@ -45,7 +48,7 @@ class CsiDataImporter
     log "Importing CSI Data symbols for NYSE."
     csi_securities = csi_client.nyse
     composite_exchange = Exchange.us_composite
-    expected_constituent_exchanges = Exchange.nyse
+    expected_constituent_exchanges = Exchange.nyse.to_a
     default_exchange = Exchange.catch_all_stock
     import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
   end
@@ -191,15 +194,15 @@ class CsiDataImporter
   def update_security(existing_security, csi_security)
     replacement_attributes = {}
     replacement_attributes[:csi_number] = csi_security.csi_number if existing_security.csi_number != csi_security.csi_number
-    replacement_attributes[:symbol] = csi_security.ticker if existing_security.symbol != csi_security.ticker
+    replacement_attributes[:symbol] = csi_security.symbol if existing_security.symbol != csi_security.symbol
     replacement_attributes[:name] = csi_security.name if existing_security.name != csi_security.name
     replacement_attributes[:start_date] = convert_date(csi_security.start_date) if existing_security.start_date != convert_date(csi_security.start_date)
     replacement_attributes[:end_date] = convert_date(csi_security.end_date) if existing_security.end_date != convert_date(csi_security.end_date)
 
-    sector = find_or_create_sector(csi_security.sector)
+    sector = find_or_create_sector(csi_security.sector || UNKNOWN_SECTOR_NAME)
     replacement_attributes[:sector_id] = sector.id if existing_security.sector_id != sector.id
 
-    industry = find_or_create_industry(csi_security.industry)
+    industry = find_or_create_industry(csi_security.industry || UNKNOWN_INDUSTRY_NAME)
     replacement_attributes[:industry_id] = industry.id if existing_security.industry_id != industry.id
 
     existing_security.update(replacement_attributes)

@@ -15,7 +15,7 @@ class Database
     def_delegator :instance, :connect
   end
 
-  def connect(connection_string, logger = Application.logger)
+  def connect(connection_string, logger = Application.database_logger)
     @connection ||= begin
       uri = URI(connection_string)
       case uri.scheme
