@@ -2,7 +2,7 @@ require 'pp'
 require_relative 'application'
 
 def main
-  Application.load_config(ARGV.first || Application::DEFAULT_CONFIG_FILE_PATH)
+  Application.load(ARGV.first || Application::DEFAULT_CONFIG_FILE_PATH)
 
   require_relative 'app/clients/bsym'
   require_relative 'app/clients/csidata'
@@ -16,7 +16,8 @@ def main
   # pp Bsym::Client.new.get_securities_from_predefined_file("Commodity/Financial commodity future.").to_a
   # pp Bsym::Client.new.stocks.first
 
-  pp CsiData::Client.new.amex
+  # pp CsiData::Client.new.amex
+  QuandlEod::Client.new.all_eod_bars
 end
 
 main

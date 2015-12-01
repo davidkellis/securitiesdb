@@ -84,7 +84,7 @@ class Application
     end
 
     def configure_quandl
-      Quandl::ApiConfig.api_key = AppConfig.quandl[:api_key]
+      Quandl::ApiConfig.api_key = AppConfig.quandl.api_key
       Quandl::ApiConfig.api_version = AppConfig.quandl.api_version
     end
 
@@ -96,7 +96,7 @@ class Application
 
       require_relative 'app/clients/bsym'
       require_relative 'app/clients/csidata'
-      require_relative 'app/clients/eod'
+      require_relative 'app/clients/quandl_eod'
       require_relative 'app/clients/yahoofinance'
       require_relative 'app/importers/bsym_exchanges'
       require_relative 'app/importers/bsym_securities'
