@@ -2,6 +2,9 @@ require 'csv'
 require 'zip'
 
 module QuandlEod
+  # Per https://www.quandl.com/data/EOD/documentation/documentation:
+  # The dividend column reflects the dollar amount of any cash dividend with ex-date on that day. If there is no dividend, this column has value 0.
+  # The split_adjustment_factor reflects the ratio of the number of new shares to the number of old shares, assuming a split with ex-date on that day. If there is no split, this column has value 1.
   EodBar = Struct.new(
     :date,
     :unadjusted_open,
@@ -9,7 +12,7 @@ module QuandlEod
     :unadjusted_low,
     :unadjusted_close,
     :unadjusted_volume,
-    :dividend_adjustment_factor,
+    :dividend,
     :split_adjustment_factor,
     :adjusted_open,
     :adjusted_high,
@@ -29,9 +32,9 @@ module QuandlEod
     # => #<Enumerator: all_eod_bars>
     #
     # If called with a block:
-    # all_eod_bars {|symbol, eod_bar| puts "#{symbol} - #{eod_bar.inspect}" }
-    # AAPL - EodBar1
-    # AAPL - EodBar2
+    # all_eod_bars {|symbol, eod_bars| puts "#{symbol} - #{eod_bars.inspect}" }
+    # AAPL - [EodBar1, EodBar2, ...]
+    # ABC - [EodBar1000, EodBar1001, ...]
     # ...
     # => nil
     def all_eod_bars(&blk)
@@ -39,7 +42,7 @@ module QuandlEod
         download_zipped_database
         extract_csv_file_from_zipped_database
         delete_zipped_database
-        enumerate_rows_in_csv(&blk)
+        enumerate_rowsets_in_csv(&blk)
         delete_extracted_csv_database
         nil
       else
@@ -48,8 +51,8 @@ module QuandlEod
     end
 
     # returns hash of the form:
-    # { "EOD/AAPL" => [EodBar1, EodBar2, ...],
-    #   "EOD/MSFT" => [EodBar1000, ...],
+    # { "AAPL" => [EodBar1, EodBar2, ...],
+    #   "MSFT" => [EodBar1000, ...],
     #   ... }
     def eod_bars(symbols = [])
       symbols.reduce({}) do |memo, symbol|
@@ -109,6 +112,46 @@ module QuandlEod
         )
         blk.call(symbol, eod_bar)
       end
+    end
+
+    # CSV_FILE_PATH is a CSV file of the form:
+    # A,1999-11-18,45.5,50.0,40.0,44.0,44739900.0,0.0,1.0,29.84158347724813,32.792948876096844,26.234359100877477,28.857795010965223,44739900.0
+    # A,1999-11-19,42.94,43.0,39.81,40.38,10897100.0,0.0,1.0,28.161733875159676,28.20108422524141,26.108957279229315,26.482785605005773,10897100.0
+    # ...
+    # ZZZ,2015-07-16,0.5,0.5,0.5,0.5,0.0,0.0,1.0,0.5,0.5,0.5,0.5,0.0
+    # ZZZ,2015-07-17,1.0,1.01,1.0,1.0,1000.0,0.0,1.0,1.0,1.01,1.0,1.0,1000.0
+    def enumerate_rowsets_in_csv(&blk)
+      last_symbol = nil
+      eod_bars = []
+      File.foreach(CSV_FILE_PATH) do |line|
+        fields = line.split(',')
+        raise "CSV file malformed" unless fields.count == 14
+        symbol = fields[0]
+        eod_bar = ::QuandlEod::EodBar.new(
+          fields[1].gsub("-","").to_i,
+          fields[2].to_f,
+          fields[3].to_f,
+          fields[4].to_f,
+          fields[5].to_f,
+          fields[6].to_f,
+          fields[7].to_f,
+          fields[8].to_f,
+          fields[9].to_f,
+          fields[10].to_f,
+          fields[11].to_f,
+          fields[12].to_f,
+          fields[13].to_f
+        )
+        if symbol != last_symbol && last_symbol
+          blk.call(last_symbol, eod_bars)
+
+          eod_bars = []
+        end
+        eod_bars << eod_bar
+        last_symbol = symbol
+      end
+
+      blk.call(last_symbol, eod_bars) if last_symbol
     end
 
     def delete_extracted_csv_database

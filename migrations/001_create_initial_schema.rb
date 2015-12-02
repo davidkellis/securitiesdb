@@ -63,8 +63,7 @@ Sequel.migration do
     create_table :eod_bars do
       primary_key :id
       foreign_key :security_id, :securities, null: false
-      Bignum :start_time, null: false
-      Bignum :end_time, null: false
+      Integer :date, null: false
       BigDecimal :open, :size=>[12, 2], null: false   # single-digit billions
       BigDecimal :high, :size=>[12, 2], null: false   # single-digit billions
       BigDecimal :low, :size=>[12, 2], null: false    # single-digit billions

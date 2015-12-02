@@ -4,8 +4,8 @@ require_relative 'application'
 def main
   Application.load(ARGV.first || Application::DEFAULT_CONFIG_FILE_PATH)
 
-  require_relative 'app/clients/bsym'
-  require_relative 'app/clients/csidata'
+  # require_relative 'app/clients/bsym'
+  # require_relative 'app/clients/csidata'
 
   # pp Bsym::Client.new.exchange_codes
   # pp Bsym::Client.new.security_types
@@ -17,7 +17,7 @@ def main
   # pp Bsym::Client.new.stocks.first
 
   # pp CsiData::Client.new.amex
-  QuandlEod::Client.new.all_eod_bars
+  QuandlEod::Client.new.send(:enumerate_rowsets_in_csv) {|symbol, bars| puts symbol, bars.inspect; break }
 end
 
 main

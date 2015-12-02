@@ -171,17 +171,38 @@ class CorporateActionType < Sequel::Model
   one_to_many :corporate_actions
 
   def self.cash_dividend
-    first(name: "Cash Dividend")
+    @cash_dividend ||= first(name: "Cash Dividend")
   end
 
   def self.split
-    first(name: "Split")
+    @split ||= first(name: "Split")
   end
 end
 
 class CorporateAction < Sequel::Model
   many_to_one :security
   many_to_one :corporate_action_type
+
+  def self.create_cash_dividend(security_id, ex_date, declaration_date, record_date, payable_date, adjustment_ratio)
+    CorporateAction.create(
+      security_id: security_id,
+      corporate_action_type_id: CorporateActionType.cash_dividend.id,
+      ex_date: ex_date,
+      declaration_date: declaration_date,
+      record_date: record_date,
+      payable_date: payable_date,
+      adjustment_ratio: adjustment_ratio
+    )
+  end
+
+  def self.create_split(security_id, ex_date, adjustment_ratio)
+    CorporateAction.create(
+      security_id: security_id,
+      corporate_action_type_id: CorporateActionType.split.id,
+      ex_date: ex_date,
+      adjustment_ratio: adjustment_ratio
+    )
+  end
 end
 
 CorporateAction.dataset_module do
