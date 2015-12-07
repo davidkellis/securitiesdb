@@ -91,7 +91,21 @@ Sequel.migration do
       Integer :declaration_date
       Integer :record_date
       Integer :payable_date
-      BigDecimal :adjustment_ratio, :size=>[30, 15], null: false     # splits are recorded as a decimal approximation of the ratio of "new float" / "old float"
+
+      # NOTE:
+      # 1. In accordance with the calculations at http://www.crsp.com/files/data_descriptions_guide_0.pdf,
+      # http://www.crsp.com/products/documentation/crsp-calculations,
+      # http://www.crsp.com/products/documentation/data-definitions-f#factor-to-adjust-price-in-period,
+      # http://www.crsp.com/products/documentation/daily
+      # http://www.crsp.com/products/documentation/daily-and-monthly-time-series, and
+      # https://www.quandl.com/data/EOD/documentation/methodology,
+      # split and dividend adjustment factors are decimal values such that
+      # when unadjusted price and dividend payout values are divided by the appropriate cumulative adjustment factor yield an adjusted price or dividend payout value,
+      # and
+      # when unadjusted share and volume values are multiplied by the appropriate cumulative adjustment factor yield an adjusted share or volume value.
+      # 2. Cumlative adjustment factors may be computed by
+      # splits are recorded as a decimal approximation of the ratio of "new float" / "old float"
+      BigDecimal :adjustment_factor, :size=>[30, 15], null: false
 
       index :id, unique: true
       index [:corporate_action_type_id, :security_id, :ex_date], unique: true

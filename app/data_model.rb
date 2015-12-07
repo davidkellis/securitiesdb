@@ -183,7 +183,7 @@ class CorporateAction < Sequel::Model
   many_to_one :security
   many_to_one :corporate_action_type
 
-  def self.create_cash_dividend(security_id, ex_date, declaration_date, record_date, payable_date, adjustment_ratio)
+  def self.create_cash_dividend(security_id, ex_date, declaration_date, record_date, payable_date, adjustment_factor)
     CorporateAction.create(
       security_id: security_id,
       corporate_action_type_id: CorporateActionType.cash_dividend.id,
@@ -191,16 +191,16 @@ class CorporateAction < Sequel::Model
       declaration_date: declaration_date,
       record_date: record_date,
       payable_date: payable_date,
-      adjustment_ratio: adjustment_ratio
+      adjustment_factor: adjustment_factor
     )
   end
 
-  def self.create_split(security_id, ex_date, adjustment_ratio)
+  def self.create_split(security_id, ex_date, adjustment_factor)
     CorporateAction.create(
       security_id: security_id,
       corporate_action_type_id: CorporateActionType.split.id,
       ex_date: ex_date,
-      adjustment_ratio: adjustment_ratio
+      adjustment_factor: adjustment_factor
     )
   end
 end
