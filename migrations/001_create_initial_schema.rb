@@ -103,8 +103,11 @@ Sequel.migration do
       # when unadjusted price and dividend payout values are divided by the appropriate cumulative adjustment factor yield an adjusted price or dividend payout value,
       # and
       # when unadjusted share and volume values are multiplied by the appropriate cumulative adjustment factor yield an adjusted share or volume value.
-      # 2. Cumlative adjustment factors may be computed by
-      # splits are recorded as a decimal approximation of the ratio of "new float" / "old float"
+      # 2. Cumlative adjustment factors may be computed by multiplying consecutive adjustment factors.
+      #
+      # NOTE:
+      # The adjustment factor for splits and stock dividends is recorded as a decimal approximation of the ratio of (New Float) / (Old Float)
+      # The adjustment factor for cash dividends is recorded as (Close Price + Dividend Amount) / (Close Price)
       BigDecimal :adjustment_factor, :size=>[30, 15], null: false
 
       index :id, unique: true

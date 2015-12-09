@@ -55,7 +55,7 @@ class QuandlEodImporter
       if eod_bar.dividend != 0.0
         # per https://www.quandl.com/data/EOD/documentation/methodology: Adjustment Ratio = (Close Price + Dividend Amount) / (Close Price)
         dividend_adjustment_factor = (eod_bar.unadjusted_close + eod_bar.dividend) / eod_bar.unadjusted_close
-        CorporateAction.create_cash_dividend(security.id, eod_bar.date, dividend_adjustment_factor)
+        CorporateAction.create_cash_dividend(security.id, eod_bar.date, nil, nil, nil, dividend_adjustment_factor)
       end
 
       # The split_adjustment_factor reflects the ratio of the number of new shares to the number of old shares, assuming a split with ex-date on that day.
