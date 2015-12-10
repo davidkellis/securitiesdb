@@ -2,6 +2,10 @@ require 'csv'
 require 'zip'
 
 class QuandlEodImporter
+  def initialize
+    @us_stock_exchanges = Exchange.us_stock_exchanges.to_a
+    @us_composite = Exchange.us_composite
+  end
 
   def import
     eod_bars = QuandlEod::Client.new.all_eod_bars
@@ -9,6 +13,10 @@ class QuandlEodImporter
   end
 
   private
+
+  def log(msg)
+    Application.logger.info(msg)
+  end
 
   def import_eod_bars_splits_and_dividends(all_eod_bars)
     all_eod_bars.each do |symbol, eod_bars|
@@ -26,19 +34,41 @@ class QuandlEodImporter
       #   adjusted_low,
       #   adjusted_close,
       #   adjusted_volume
-      security = Security.first(symbol: symbol, exchange_id: Exchange.us_stock_exchanges.map(&:id))
-      most_recent_eod_bar = security.eod_bars_dataset.reverse_order(:date).first
+      security = lookup_security(symbol)
+      if security
+        most_recent_eod_bar = security.eod_bars_dataset.reverse_order(:date).first
 
-      if most_recent_eod_bar
-        import_missing_eod_bars_splits_and_dividends(security, eod_bars.select {|eod_bar| eod_bar.date > most_recent_eod_bar.date })
+        if most_recent_eod_bar
+          import_missing_eod_bars_splits_and_dividends(security, eod_bars.select {|eod_bar| eod_bar.date > most_recent_eod_bar.date })
+        else
+          import_missing_eod_bars_splits_and_dividends(security, eod_bars)
+        end
       else
-        import_missing_eod_bars_splits_and_dividends(security, eod_bars)
+        puts "Security symbol '#{symbol}' not found in any US exchange."
+      end
+    end
+  end
+
+  def lookup_security(symbol)
+    security_in_us_composite_exchange = Security.first(symbol: symbol, exchange_id: @us_composite.id)
+    security_in_us_composite_exchange || begin
+      securities_in_local_exchanges = Security.where(symbol: symbol, exchange_id: @us_stock_exchanges.map(&:id)).to_a
+      case securities_in_local_exchanges.count
+      when 0
+        nil
+      when 1
+        securities_in_local_exchanges.first
+      else
+        # todo: figure out which exchange is preferred, and then return the security in the most preferred exchange
+        raise "Symbol #{symbol} is listed in multiple exchanges: #{securities_in_local_exchanges.map(&:exchange).map(&:label)}"
       end
     end
   end
 
   # eod_bars is an array of QuandlEod::EodBar objects
   def import_missing_eod_bars_splits_and_dividends(security, eod_bars)
+    log "Importing #{eod_bars.count} EOD bars from Quandl EOD database for symbol #{symbol}."
+
     eod_bars.each do |eod_bar|
       EodBar.create(
         security_id: security.id,

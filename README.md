@@ -25,8 +25,21 @@ Prerequisites:
    ```
 
 6. Import data
+
+   To import all data:
    ```
-   script/import -b -c
+   script/import --all
+   OR
+   script/import -b -c --quandl-eod
+   OR
+   script/import --bsym --csi --quandl-eod
+   ```
+
+   To import only exchanges:
+   ```
+   script/import -e
+   OR
+   script/import --exchanges
    ```
 
 ## Reset Database

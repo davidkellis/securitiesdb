@@ -72,7 +72,7 @@ Sequel.migration do
 
       index :id, unique: true
       index :security_id
-      index [:security_id, :start_time], unique: true
+      index [:security_id, :date], unique: true
     end
 
     create_table :corporate_action_types do

@@ -19,11 +19,18 @@ def import_csi
   importer.import
 end
 
+def import_quandl_eod
+  importer = QuandlEodImporter.new
+  importer.import
+end
+
 def main
   opts = Slop.parse do |o|
+    o.bool '-a', '--all', "Import everything - exchanges, symbols, EOD data, splits, dividends, etc."
     o.bool '-b', '--bsym', 'Import Bloomberg Open Symbology - Exchanges and Symbols'
     o.bool '-c', '--csi', 'Import CSI Data - Exchanges and Symbols'
     o.bool '-e', '--exchanges', 'Import Bloomberg Open Symbology Exchanges'
+    o.bool '--quandl-eod', "Import EOD prices, splits, and dividends for US traded stocks from Quandl's EOD database (see https://www.quandl.com/data/EOD/)."
     o.string '--config', 'Config file path'
     o.on '--help' do
       puts o
@@ -33,9 +40,10 @@ def main
 
   import_functions = []
 
-  import_functions << :import_bsym_exchanges if opts.bsym? || opts.exchanges?
-  import_functions << :import_bsym if opts.bsym?
-  import_functions << :import_csi if opts.csi?
+  import_functions << :import_bsym_exchanges if opts.bsym? || opts.exchanges? || opts.all?
+  import_functions << :import_bsym if opts.bsym? || opts.all?
+  import_functions << :import_csi if opts.csi? || opts.all?
+  import_functions << :import_quandl_eod if opts.quandl_eod? || opts.all?
 
   if import_functions
     Application.load(opts[:config] || Application::DEFAULT_CONFIG_FILE_PATH)
