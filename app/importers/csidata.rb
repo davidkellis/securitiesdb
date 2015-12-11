@@ -205,7 +205,9 @@ class CsiDataImporter
     industry = find_or_create_industry(csi_security.industry || UNKNOWN_INDUSTRY_NAME)
     replacement_attributes[:industry_id] = industry.id if existing_security.industry_id != industry.id
 
-    existing_security.update(replacement_attributes)
+    existing_security.update(replacement_attributes) unless replacement_attributes.empty?
+
+    existing_security
   rescue Sequel::ValidationFailed, Sequel::HookFailed => e
     log "Can't import #{csi_security.inspect}: #{e.message}"
   rescue => e

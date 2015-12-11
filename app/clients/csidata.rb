@@ -84,6 +84,7 @@ module CsiData
 
     def get_securities(url)
       csv_contents = Net::HTTP.get(URI(url))
+      csv_contents.encode!("UTF-8", "ISO-8859-1")   # CSI Data encodes their CSV files with the ISO-8859-1 character set, so we need to convert it to UTF-8
       rows = CSV.parse(csv_contents, headers: false, return_headers: false, skip_lines: /^(\s*,\s*)*$/)
       if rows.first.join(",") == SYMBOL_LISTING_HEADER
         rows.drop(1).map {|row| Security.new(*row.map{|s| s && s.strip }) }
