@@ -97,11 +97,15 @@ class Application
       require_relative 'app/clients/bsym'
       require_relative 'app/clients/csidata'
       require_relative 'app/clients/quandl_eod'
+      # require_relative 'app/clients/quandl_fundamentals'
       require_relative 'app/clients/yahoofinance'
       require_relative 'app/importers/bsym_exchanges'
       require_relative 'app/importers/bsym_securities'
       require_relative 'app/importers/csidata'
       require_relative 'app/importers/quandl_eod'
+      # require_relative 'app/importers/quandl_fundamentals'
+      # require_relative 'app/importers/yahoo_eod'
+      # require_relative 'app/importers/yahoo_splits_and_dividends'
     end
 
   end

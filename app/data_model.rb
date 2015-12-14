@@ -66,7 +66,8 @@ class Exchange < Sequel::Model
     us_composite.constituent_exchanges +    # constituent_exchanges = ["PQ", "UA", "UB", "UC", "UD", "UE", "UF", "UL", "UM", "UN", "UO", "UP", "UQ", "UR", "UT", "UU", "UV", "UW", "UX", "VJ", "VK", "VY"]
       cboe.to_a +
       dow_jones.to_a +
-      russell.to_a
+      russell.to_a +
+      [us_composite]
   end
 
   def self.us_composite
@@ -100,6 +101,18 @@ end
 
 class SecurityType < Sequel::Model
   one_to_many :securities
+
+  def self.stock
+    first(name: "Common Stock")   # Market Sector/Security Type => Equity/Common Stock
+  end
+
+  def self.etp
+    first(name: "ETP")            # Market Sector/Security Type => Equity/ETP
+  end
+
+  def self.funds
+    where(name: ["Fund of Funds", "Mutual Fund", "Open-End Fund"]).to_a    # Equity/{"Fund of Funds", "Mutual Fund", "Open-End Fund"}
+  end
 end
 
 class Security < Sequel::Model
@@ -153,7 +166,9 @@ class Security < Sequel::Model
   end
 
   def self.us_exchanges
-    us_stock_exchanges.union(cboe)
+    qualify.
+      join(:exchanges, :id => :exchange_id).
+      where(Sequel.qualify(:exchanges, :label) => Exchange.us_exchanges.map(&:label))
   end
 
   def self.indices
@@ -219,7 +234,7 @@ CorporateAction.dataset_module do
   end
 end
 
-class FundamentalAttributes < Sequel::Model
+class FundamentalAttribute < Sequel::Model
   one_to_many :fundamental_data_points
 end
 

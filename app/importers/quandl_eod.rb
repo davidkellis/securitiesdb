@@ -49,7 +49,8 @@ class QuandlEodImporter
     end
   end
 
-  def lookup_security(symbol)
+  # search for the security (1) in the appropriate composite exchange, (2) in the appropriate constituent (local) exchanges, and finally (3) in the catch-all exchange
+  def lookup_security(symbol, date)
     security_in_us_composite_exchange = Security.first(symbol: symbol, exchange_id: @us_composite.id)
     security_in_us_composite_exchange || begin
       securities_in_local_exchanges = Security.where(symbol: symbol, exchange_id: @us_stock_exchanges.map(&:id)).to_a
@@ -62,12 +63,26 @@ class QuandlEodImporter
         # todo: figure out which exchange is preferred, and then return the security in the most preferred exchange
         raise "Symbol #{symbol} is listed in multiple exchanges: #{securities_in_local_exchanges.map(&:exchange).map(&:label)}"
       end
+    end ||
+    begin
+      securities_in_catch_all_exchanges = Security.
+                                            where(symbol: symbol, exchange_id: Exchange.catch_all_stock.id).
+                                            where{(start_date <= date) & (end_date >= date)}.
+                                            to_a
+      case securities_in_catch_all_exchanges.count
+      when 0
+        nil
+      when 1
+        securities_in_catch_all_exchanges.first
+      else
+        raise "Multiple securities in the catch all exchange(s) traded under the symbol '#{symbol}' on #{date}: #{securities_in_catch_all_exchanges.inspect}"
+      end
     end
   end
 
   # eod_bars is an array of QuandlEod::EodBar objects
   def import_missing_eod_bars_splits_and_dividends(security, eod_bars)
-    log "Importing #{eod_bars.count} EOD bars from Quandl EOD database for symbol #{symbol}."
+    log "Importing #{eod_bars.count} EOD bars from Quandl EOD database for symbol #{security.symbol}."
 
     eod_bars.each do |eod_bar|
       EodBar.create(

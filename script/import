@@ -24,6 +24,19 @@ def import_quandl_eod
   importer.import
 end
 
+def import_yahoo_eod
+  importer = YahooEodImporter.new
+  importer.import
+
+  importer = YahooSplitsAndDividendsImporter.new
+  importer.import
+end
+
+def import_quandl_fundamentals
+  importer = QuandlFundamentalsImporter.new
+  importer.import
+end
+
 def main
   opts = Slop.parse do |o|
     o.bool '-a', '--all', "Import everything - exchanges, symbols, EOD data, splits, dividends, etc."
@@ -31,6 +44,8 @@ def main
     o.bool '-c', '--csi', 'Import CSI Data - Exchanges and Symbols'
     o.bool '-e', '--exchanges', 'Import Bloomberg Open Symbology Exchanges'
     o.bool '--quandl-eod', "Import EOD prices, splits, and dividends for US traded stocks from Quandl's EOD database (see https://www.quandl.com/data/EOD/)."
+    o.bool '--yahoo-eod', "Import EOD prices, splits, and dividends for stocks/ETFs/ETNs from Yahoo! Finance."
+    o.bool '--quandl-fundamentals', "Import stock fundamentals for US traded stocks from Quandl's ??? database (see ???)."
     o.string '--config', 'Config file path'
     o.on '--help' do
       puts o
@@ -44,6 +59,8 @@ def main
   import_functions << :import_bsym if opts.bsym? || opts.all?
   import_functions << :import_csi if opts.csi? || opts.all?
   import_functions << :import_quandl_eod if opts.quandl_eod? || opts.all?
+  # import_functions << :import_yahoo_eod if opts.yahoo_eod? || opts.all?
+  # import_functions << :import_quandl_fundamentals if opts.quandl_fundamentals? || opts.all?
 
   if import_functions
     Application.load(opts[:config] || Application::DEFAULT_CONFIG_FILE_PATH)

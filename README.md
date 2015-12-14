@@ -30,9 +30,9 @@ Prerequisites:
    ```
    script/import --all
    OR
-   script/import -b -c --quandl-eod
+   script/import -b -c --quandl-eod --quandl-fundamentals
    OR
-   script/import --bsym --csi --quandl-eod
+   script/import --bsym --csi --quandl-eod --quandl-fundamentals
    ```
 
    To import only exchanges:

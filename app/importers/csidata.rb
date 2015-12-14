@@ -104,6 +104,7 @@ class CsiDataImporter
 
   def import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
     all_exchanges = ([composite_exchange] + expected_constituent_exchanges + [default_exchange]).flatten.compact
+    log("Importing #{csi_securities.count} securities from CSI.")
     csi_securities.each do |csi_security|
       import_security(csi_security, composite_exchange, expected_constituent_exchanges, default_exchange, all_exchanges)
     end
@@ -115,17 +116,20 @@ class CsiDataImporter
     exchanges = all_exchanges || ([composite_exchange] + expected_constituent_exchanges + [default_exchange]).flatten.compact
 
     # search for security in any of the exchanges found in (1)
-    securities = Security.where(exchange_id: exchanges.map(&:id)).to_a
+    securities = Security.where(exchange_id: exchanges.map(&:id), symbol: csi_security.symbol).to_a
 
     case securities.count
     when 0                                  # if no securities found, create the security in default_exchange
+      log("Creating #{csi_security.symbol} in #{default_exchange.label}")
       create_security(csi_security, default_exchange)
     when 1                                  # if one security found, update it
       security = securities.first
+      log("Updating #{security.symbol} (id=#{security.id})")
       update_security(security, csi_security)
     else # > 1                              # if multiple securities found:
       composite_security = securities.detect {|security| security.exchange == composite_exchange }
       if composite_security                 #   if security is in composite exchange, update the composite security
+        log("Updating composite security #{composite_security.symbol} (id=#{composite_security.id})")
         update_security(composite_security, csi_security)
       else                                  #   otherwise, security is in constituent exchange, so identify the proper security
         # we want to identify the security residing in the component exchange that is most preferred in the list of <expected_exchanges>, then update that security
@@ -133,6 +137,7 @@ class CsiDataImporter
         get_exchange_rank = ->(security) { constituent_exchange_to_rank[security.exchange] || 1_000_000_000 }
         security_with_most_preferred_constituent_exchange = securities.min_by {|security| get_exchange_rank.(security) }
 
+        log("Updating component security #{security_with_most_preferred_constituent_exchange.symbol} (id=#{security_with_most_preferred_constituent_exchange.id}); #{security_with_most_preferred_constituent_exchange.inspect}")
         update_security(security_with_most_preferred_constituent_exchange, csi_security)
       end
     end
