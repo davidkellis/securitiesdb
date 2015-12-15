@@ -109,6 +109,16 @@ module Bsym
                                   "Subscription String 3"].join("|")
     SECURITIES_LIST_CELL_COUNT = 17
 
+    attr_accessor :logger
+
+    def initialize(logger)
+      @logger = logger
+    end
+
+    def log(msg)
+      Application.logger.info("#{Time.now} - #{msg}")
+    end
+
     # the BsymFields were taken from the table of fields documented in the Open Fields tab of http://bsym.bloomberg.com/sym/ as of Nov. 6, 2015.
     def open_fields
       BsymFields
@@ -327,7 +337,7 @@ module Bsym
                 if row.size == SECURITIES_LIST_CELL_COUNT
                   yield convert_row_to_security(row)
                 else
-                  puts "Cannot parse row in #{url}, zip entry index #{txt_file_index}: #{line}"
+                  log "Cannot parse row in #{url}, zip entry index #{txt_file_index}: #{line}"
                 end
               end
             end

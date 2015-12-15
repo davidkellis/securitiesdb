@@ -7,14 +7,14 @@ class BsymExchangesImporter
   attr_accessor :bsym_client
 
   def initialize
-    self.bsym_client = Bsym::Client.new
+    self.bsym_client = Bsym::Client.new(Application.logger)
 
     @exchange_memo = {}
     @security_type_memo = {}
   end
 
   def log(msg)
-    Application.logger.info(msg)
+    Application.logger.info("#{Time.now} - #{msg}")
   end
 
   def import

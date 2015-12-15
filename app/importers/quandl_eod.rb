@@ -8,14 +8,14 @@ class QuandlEodImporter
   end
 
   def import
-    eod_bars = QuandlEod::Client.new.all_eod_bars
+    eod_bars = QuandlEod::Client.new(Application.logger).all_eod_bars
     import_eod_bars_splits_and_dividends(eod_bars)
   end
 
   private
 
   def log(msg)
-    Application.logger.info(msg)
+    Application.logger.info("#{Time.now} - #{msg}")
   end
 
   def import_eod_bars_splits_and_dividends(all_eod_bars)
@@ -34,25 +34,31 @@ class QuandlEodImporter
       #   adjusted_low,
       #   adjusted_close,
       #   adjusted_volume
-      security = lookup_security(symbol)
-      if security
-        most_recent_eod_bar = security.eod_bars_dataset.reverse_order(:date).first
+      if !eod_bars.empty?
+        security = lookup_security(symbol, eod_bars.first.date)
+        if security
+          most_recent_eod_bar = security.eod_bars_dataset.reverse_order(:date).first
 
-        if most_recent_eod_bar
-          import_missing_eod_bars_splits_and_dividends(security, eod_bars.select {|eod_bar| eod_bar.date > most_recent_eod_bar.date })
+          if most_recent_eod_bar
+            import_missing_eod_bars_splits_and_dividends(security, eod_bars.select {|eod_bar| eod_bar.date > most_recent_eod_bar.date })
+          else
+            import_missing_eod_bars_splits_and_dividends(security, eod_bars)
+          end
         else
-          import_missing_eod_bars_splits_and_dividends(security, eod_bars)
+          log "Security symbol '#{symbol}' not found in any US exchange."
         end
-      else
-        puts "Security symbol '#{symbol}' not found in any US exchange."
       end
     end
   end
 
   # search for the security (1) in the appropriate composite exchange, (2) in the appropriate constituent (local) exchanges, and finally (3) in the catch-all exchange
   def lookup_security(symbol, date)
-    security_in_us_composite_exchange = Security.first(symbol: symbol, exchange_id: @us_composite.id)
-    security_in_us_composite_exchange || begin
+    # 1. search for the security in the appropriate composite exchange
+    begin
+      Security.first(symbol: symbol, exchange_id: @us_composite.id)
+    end ||
+    # 2. if not found in (1), search in the appropriate constituent (local) exchange(s)
+    begin
       securities_in_local_exchanges = Security.where(symbol: symbol, exchange_id: @us_stock_exchanges.map(&:id)).to_a
       case securities_in_local_exchanges.count
       when 0
@@ -64,10 +70,11 @@ class QuandlEodImporter
         raise "Symbol #{symbol} is listed in multiple exchanges: #{securities_in_local_exchanges.map(&:exchange).map(&:label)}"
       end
     end ||
+    # 3. if not found in (1) or (2), search in the appropriate catch-all exchange(s)
     begin
       securities_in_catch_all_exchanges = Security.
                                             where(symbol: symbol, exchange_id: Exchange.catch_all_stock.id).
-                                            where{(start_date <= date) & (end_date >= date)}.
+                                            where { (start_date <= date) & (end_date >= date) }.
                                             to_a
       case securities_in_catch_all_exchanges.count
       when 0

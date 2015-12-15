@@ -22,7 +22,7 @@ class CsiDataImporter
   end
 
   def log(msg)
-    Application.logger.info(msg)
+    Application.logger.info("#{Time.now} - #{msg}")
   end
 
   def import

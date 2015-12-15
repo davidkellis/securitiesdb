@@ -27,6 +27,16 @@ module QuandlEod
     CSV_FIELD_COUNT = 14
     DATABASE_NAME = "EOD"
 
+    attr_accessor :logger
+
+    def initialize(logger)
+      @logger = logger
+    end
+
+    def log(msg)
+      Application.logger.info("#{Time.now} - #{msg}")
+    end
+
     # If called without a block:
     # all_eod_bars
     # => #<Enumerator: all_eod_bars>
@@ -74,7 +84,7 @@ module QuandlEod
         # Handle entries one by one; NOTE: there should only be a single file in the zipfile
         zip_file.each do |entry|
           # Extract file
-          puts "Extracting #{entry.name} to #{CSV_FILE_PATH}"
+          log "Extracting #{entry.name} to #{CSV_FILE_PATH}"
           entry.extract(CSV_FILE_PATH)
         end
       end

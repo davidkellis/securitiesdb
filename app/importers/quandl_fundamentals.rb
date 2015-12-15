@@ -15,7 +15,7 @@ class QuandlFundamentalsImporter
   private
 
   def log(msg)
-    Application.logger.info(msg)
+    Application.logger.info("#{Time.now} - #{msg}")
   end
 
   def import_fundamentals(all_fundamentals)
@@ -27,35 +27,42 @@ class QuandlFundamentalsImporter
       #   :attribute,
       #   :attribute_values
       # )
-      # AttributeValue = Struct.new(:time, :value)
-      security = lookup_security(symbol)
-      if security
-        attribute_datasets.each do |attribute_name, attribute_dataset|
-          most_recent_attribute_value = security.
-                                          fundamental_data_points_dataset.
-                                          where(Sequel.qualify(:fundamental_attributes, :name) => attribute_name).
-                                          reverse_order(:start_date).
-                                          first
+      # AttributeValue = Struct.new(:date, :value)
+      if !attribute_datasets.empty? && !attribute_datasets.first[1].attribute_values.empty?
+        date_of_first_attribute_value = attribute_datasets.first[1].attribute_values.first.date
+        security = lookup_security(symbol, date_of_first_attribute_value)
+        if security
+          attribute_datasets.each do |attribute_name, attribute_dataset|
+            most_recent_attribute_value = security.
+                                            fundamental_data_points_dataset.
+                                            where(Sequel.qualify(:fundamental_attributes, :name) => attribute_name).
+                                            reverse_order(:start_date).
+                                            first
 
-          if most_recent_attribute_value
-            import_missing_fundamentals(
-              security,
-              attribute_name,
-              attribute_dataset.attribute_values.select {|attribute_value| attribute_value.date > most_recent_attribute_value.start_date }
-            )
-          else
-            import_missing_fundamentals(security, attribute_name, attribute_dataset.attribute_values)
+            if most_recent_attribute_value
+              import_missing_fundamentals(
+                security,
+                attribute_name,
+                attribute_dataset.attribute_values.select {|attribute_value| attribute_value.date > most_recent_attribute_value.start_date }
+              )
+            else
+              import_missing_fundamentals(security, attribute_name, attribute_dataset.attribute_values)
+            end
           end
+        else
+          log "Security symbol '#{symbol}' not found in any US exchange."
         end
-      else
-        puts "Security symbol '#{symbol}' not found in any US exchange."
-      end
     end
   end
 
-  def lookup_security(symbol)
-    security_in_us_composite_exchange = Security.first(symbol: symbol, exchange_id: @us_composite.id)
-    security_in_us_composite_exchange || begin
+  # search for the security (1) in the appropriate composite exchange, (2) in the appropriate constituent (local) exchanges, and finally (3) in the catch-all exchange
+  def lookup_security(symbol, date)
+    # 1. search for the security in the appropriate composite exchange
+    begin
+      Security.first(symbol: symbol, exchange_id: @us_composite.id)
+    end ||
+    # 2. if not found in (1), search in the appropriate constituent (local) exchange(s)
+    begin
       securities_in_local_exchanges = Security.where(symbol: symbol, exchange_id: @us_stock_exchanges.map(&:id)).to_a
       case securities_in_local_exchanges.count
       when 0
@@ -65,6 +72,21 @@ class QuandlFundamentalsImporter
       else
         # todo: figure out which exchange is preferred, and then return the security in the most preferred exchange
         raise "Symbol #{symbol} is listed in multiple exchanges: #{securities_in_local_exchanges.map(&:exchange).map(&:label)}"
+      end
+    end ||
+    # 3. if not found in (1) or (2), search in the appropriate catch-all exchange(s)
+    begin
+      securities_in_catch_all_exchanges = Security.
+                                            where(symbol: symbol, exchange_id: Exchange.catch_all_stock.id).
+                                            where { (start_date <= date) & (end_date >= date) }.
+                                            to_a
+      case securities_in_catch_all_exchanges.count
+      when 0
+        nil
+      when 1
+        securities_in_catch_all_exchanges.first
+      else
+        raise "Multiple securities in the catch all exchange(s) traded under the symbol '#{symbol}' on #{date}: #{securities_in_catch_all_exchanges.inspect}"
       end
     end
   end
