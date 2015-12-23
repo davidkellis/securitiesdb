@@ -4,48 +4,18 @@ require_relative '../application'
 
 require "slop"
 
-def import_bsym_exchanges
-  importer = BsymExchangesImporter.new
-  importer.import
-end
-
-def import_bsym
-  importer = BsymSecuritiesImporter.new
-  importer.import
-end
-
-def import_csi
-  importer = CsiDataImporter.new
-  importer.import
-end
-
-def import_quandl_eod
-  importer = QuandlEodImporter.new
-  importer.import
-end
-
-def import_yahoo_eod
-  importer = YahooEodImporter.new
-  importer.import
-
-  importer = YahooSplitsAndDividendsImporter.new
-  importer.import
-end
-
-def import_quandl_fundamentals
-  importer = QuandlFundamentalsImporter.new
-  importer.import
-end
-
 def main
   opts = Slop.parse do |o|
-    o.bool '-a', '--all', "Import everything - exchanges, symbols, EOD data, splits, dividends, etc."
+    o.bool '-a', '--all', "Download and import everything - exchanges, symbols, EOD data, splits, dividends, etc."
     o.bool '-b', '--bsym', 'Import Bloomberg Open Symbology - Exchanges and Symbols'
     o.bool '-c', '--csi', 'Import CSI Data - Exchanges and Symbols'
+    o.bool '-d', '--download_dbs', "Download full database snapshots from Quandl."
     o.bool '-e', '--exchanges', 'Import Bloomberg Open Symbology Exchanges'
     o.bool '--quandl-eod', "Import EOD prices, splits, and dividends for US traded stocks from Quandl's EOD database (see https://www.quandl.com/data/EOD/)."
+    o.string '--quandl-eod-database', "Quandl EOD full database snapshot file path. (e.g. ./data/eod_database_20151222.zip)"
     o.bool '--yahoo-eod', "Import EOD prices, splits, and dividends for stocks/ETFs/ETNs from Yahoo! Finance."
     o.bool '--quandl-fundamentals', "Import stock fundamentals for US traded stocks from Quandl's ??? database (see ???)."
+    o.string '--quandl-fundamentals-database', "Quandl fundamentals full database snapshot file path. (e.g. ./data/fundamentals_database_20151222.zip)"
     o.string '--config', 'Config file path'
     o.on '--help' do
       puts o
@@ -53,20 +23,50 @@ def main
     end
   end
 
-  import_functions = []
 
-  import_functions << :import_bsym_exchanges if opts.bsym? || opts.exchanges? || opts.all?
-  import_functions << :import_bsym if opts.bsym? || opts.all?
-  import_functions << :import_csi if opts.csi? || opts.all?
-  import_functions << :import_quandl_eod if opts.quandl_eod? || opts.all?
-  # import_functions << :import_yahoo_eod if opts.yahoo_eod? || opts.all?
-  # import_functions << :import_quandl_fundamentals if opts.quandl_fundamentals? || opts.all?
+  Application.load(opts[:config] || Application::DEFAULT_CONFIG_FILE_PATH)
 
-  if import_functions
-    Application.load(opts[:config] || Application::DEFAULT_CONFIG_FILE_PATH)
+  quandl_eod_client = QuandlEod::Client.new(Application.logger, opts[:quandl_eod_database])
+  # quandl_fundamentals_client = QuandlFundamentals::Client.new(Application.logger, opts[:quandl_fundamentals_database])
 
-    import_functions.each {|fn_name| send(fn_name) }
+  if opts.download_dbs? || opts.all?
+    quandl_eod_client.download_full_database
+    # quandl_fundamentals_client.download_full_database
   end
+
+  if opts.bsym? || opts.exchanges? || opts.all?
+    importer = BsymExchangesImporter.new
+    importer.import
+  end
+
+  if opts.bsym? || opts.all?
+    importer = BsymSecuritiesImporter.new
+    importer.import
+  end
+
+  if opts.csi? || opts.all?
+    importer = CsiDataImporter.new
+    importer.import
+  end
+
+  if opts.quandl_eod? || opts.all?
+    importer = QuandlEodImporter.new(quandl_eod_client)
+    importer.import
+  end
+
+  # if opts.yahoo_eod? || opts.all?
+  #   importer = YahooEodImporter.new
+  #   importer.import
+  #
+  #   importer = YahooSplitsAndDividendsImporter.new
+  #   importer.import
+  # end
+  #
+  # if opts.quandl_fundamentals? || opts.all?
+  #   importer = QuandlFundamentalsImporter.new(quandl_fundamentals_client)
+  #   importer.import
+  # end
+
 end
 
 main if __FILE__ == $0

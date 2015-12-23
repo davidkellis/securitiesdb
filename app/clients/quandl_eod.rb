@@ -22,14 +22,15 @@ module QuandlEod
   )
 
   class Client
-    ZIP_FILE_PATH = "./eod_database.zip"
-    CSV_FILE_PATH = "./eod_database.csv"
+    ZIP_FILE_PATH = "./data/eod_database_<DATE>.zip"
+    CSV_FILE_PATH = "./data/eod_database_<DATE>.csv"
     CSV_FIELD_COUNT = 14
     DATABASE_NAME = "EOD"
 
-    attr_accessor :logger
+    attr_accessor :logger, :zip_file_path
 
-    def initialize(logger)
+    def initialize(logger, target_zip_file_path = nil)
+      @zip_file_path = target_zip_file_path || ZIP_FILE_PATH.gsub("<DATE>", Time.now.strftime("%Y%m%d"))
       @logger = logger
     end
 
@@ -49,9 +50,9 @@ module QuandlEod
     # => nil
     def all_eod_bars(&blk)
       if block_given?
-        download_zipped_database
+        download_full_database
         extract_csv_file_from_zipped_database
-        delete_zipped_database
+        # delete_zipped_database
         enumerate_rowsets_in_csv(&blk)
         delete_extracted_csv_database
         nil
@@ -73,35 +74,39 @@ module QuandlEod
       end
     end
 
+    def download_full_database
+      Quandl::Database.get(DATABASE_NAME).bulk_download_to_file(zip_file_path) unless File.exists?(zip_file_path)
+    end
+
     private
 
-    def download_zipped_database
-      Quandl::Database.get(DATABASE_NAME).bulk_download_to_file(ZIP_FILE_PATH)
+    def csv_file_path
+      @csv_file_path ||= CSV_FILE_PATH.gsub("<DATE>", Time.now.strftime("%Y%m%d"))
     end
 
     def extract_csv_file_from_zipped_database
-      Zip::File.open(ZIP_FILE_PATH) do |zip_file|
+      Zip::File.open(zip_file_path) do |zip_file|
         # Handle entries one by one; NOTE: there should only be a single file in the zipfile
         zip_file.each do |entry|
           # Extract file
-          log "Extracting #{entry.name} to #{CSV_FILE_PATH}"
-          entry.extract(CSV_FILE_PATH)
+          log "Extracting #{entry.name} to #{csv_file_path}"
+          entry.extract(csv_file_path)
         end
       end
     end
 
     def delete_zipped_database
-      File.delete(ZIP_FILE_PATH)
+      File.delete(zip_file_path)
     end
 
-    # CSV_FILE_PATH is a CSV file of the form:
+    # csv_file_path is a CSV file of the form:
     # A,1999-11-18,45.5,50.0,40.0,44.0,44739900.0,0.0,1.0,29.84158347724813,32.792948876096844,26.234359100877477,28.857795010965223,44739900.0
     # A,1999-11-19,42.94,43.0,39.81,40.38,10897100.0,0.0,1.0,28.161733875159676,28.20108422524141,26.108957279229315,26.482785605005773,10897100.0
     # ...
     # ZZZ,2015-07-16,0.5,0.5,0.5,0.5,0.0,0.0,1.0,0.5,0.5,0.5,0.5,0.0
     # ZZZ,2015-07-17,1.0,1.01,1.0,1.0,1000.0,0.0,1.0,1.0,1.01,1.0,1.0,1000.0
     def enumerate_rows_in_csv(&blk)
-      File.foreach(CSV_FILE_PATH) do |line|
+      File.foreach(csv_file_path) do |line|
         fields = line.split(',')
         raise "CSV file malformed" unless fields.count == CSV_FIELD_COUNT
         symbol = fields[0]
@@ -124,7 +129,7 @@ module QuandlEod
       end
     end
 
-    # CSV_FILE_PATH is a CSV file of the form:
+    # csv_file_path is a CSV file of the form:
     # A,1999-11-18,45.5,50.0,40.0,44.0,44739900.0,0.0,1.0,29.84158347724813,32.792948876096844,26.234359100877477,28.857795010965223,44739900.0
     # A,1999-11-19,42.94,43.0,39.81,40.38,10897100.0,0.0,1.0,28.161733875159676,28.20108422524141,26.108957279229315,26.482785605005773,10897100.0
     # ...
@@ -133,7 +138,7 @@ module QuandlEod
     def enumerate_rowsets_in_csv(&blk)
       last_symbol = nil
       eod_bars = []
-      File.foreach(CSV_FILE_PATH) do |line|
+      File.foreach(csv_file_path) do |line|
         fields = line.split(',')
         raise "CSV file malformed" unless fields.count == CSV_FIELD_COUNT
         symbol = fields[0]
@@ -165,7 +170,7 @@ module QuandlEod
     end
 
     def delete_extracted_csv_database
-      File.delete(CSV_FILE_PATH)
+      File.delete(csv_file_path)
     end
 
     # dataset_name is a name like 'EOD/AAPL'

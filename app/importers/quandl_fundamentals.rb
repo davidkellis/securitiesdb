@@ -2,13 +2,14 @@ require 'csv'
 require 'zip'
 
 class QuandlFundamentalsImporter
-  def initialize
+  def initialize(quandl_fundamentals_client)
     @us_stock_exchanges = Exchange.us_stock_exchanges.to_a
     @us_composite = Exchange.us_composite
+    @client = quandl_fundamentals_client
   end
 
   def import
-    all_fundamentals = QuandlFundamentals::Client.new.all_fundamentals
+    all_fundamentals = @client.all_fundamentals
     import_fundamentals(all_fundamentals)
   end
 

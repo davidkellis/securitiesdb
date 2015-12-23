@@ -2,13 +2,14 @@ require 'csv'
 require 'zip'
 
 class QuandlEodImporter
-  def initialize
+  def initialize(quandl_eod_client)
     @us_stock_exchanges = Exchange.us_stock_exchanges.to_a
     @us_composite = Exchange.us_composite
+    @client = quandl_eod_client
   end
 
   def import
-    eod_bars = QuandlEod::Client.new(Application.logger).all_eod_bars
+    eod_bars = @client.all_eod_bars
     import_eod_bars_splits_and_dividends(eod_bars)
   end
 

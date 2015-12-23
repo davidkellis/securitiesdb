@@ -17,7 +17,7 @@ def main
   # pp Bsym::Client.new.stocks.first
 
   # pp CsiData::Client.new.amex
-  QuandlEod::Client.new.send(:enumerate_rowsets_in_csv) {|symbol, bars| puts symbol, bars.inspect; break }
+  QuandlEod::Client.new(Application.logger).send(:enumerate_rowsets_in_csv) {|symbol, bars| puts symbol, bars.inspect; break }
 end
 
 main

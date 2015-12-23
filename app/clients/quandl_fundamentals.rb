@@ -12,14 +12,15 @@ module QuandlFundamentals
   AttributeValue = Struct.new(:date, :value)
 
   class Client
-    ZIP_FILE_PATH = "./fundamental_database.zip"
-    CSV_FILE_PATH = "./fundamental_database.csv"
+    ZIP_FILE_PATH = "./data/fundamentals_database_<DATE>.zip"
+    CSV_FILE_PATH = "./data/fundamentals_database_<DATE>.csv"
     CSV_FIELD_COUNT = ???
     DATABASE_NAME = "??? EOD"
 
-    attr_accessor :logger
+    attr_accessor :logger, :zip_file_path
 
-    def initialize(logger)
+    def initialize(logger, target_zip_file_path = nil)
+      @zip_file_path = target_zip_file_path || ZIP_FILE_PATH.gsub("<DATE>", Time.now.strftime("%Y%m%d"))
       @logger = logger
     end
 
@@ -37,9 +38,9 @@ module QuandlFundamentals
     # 2. attribute_datasets - a Hash of the form: { attributeName1 => AttributeDataset1, attributeName2 => AttributeDataset2, ... }
     def all_fundamentals(&blk)
       if block_given?
-        download_zipped_database
+        download_full_database
         extract_csv_file_from_zipped_database
-        delete_zipped_database
+        # delete_zipped_database
         enumerate_rowsets_in_csv(&blk)
         delete_extracted_csv_database
         nil
@@ -59,11 +60,11 @@ module QuandlFundamentals
       end
     end
 
-    private
-
-    def download_zipped_database
-      Quandl::Database.get(DATABASE_NAME).bulk_download_to_file(ZIP_FILE_PATH)
+    def download_full_database
+      Quandl::Database.get(DATABASE_NAME).bulk_download_to_file(zip_file_path) unless File.exists?(zip_file_path)
     end
+
+    private
 
     def extract_csv_file_from_zipped_database
       Zip::File.open(ZIP_FILE_PATH) do |zip_file|
