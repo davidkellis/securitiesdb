@@ -4,18 +4,13 @@ require 'zip'
 # QuandlFundamentals retrieves the fundamentals data on US-traded securities
 # The Quandl Fundamentals dataset is conceptually a set of security-attribute-value-date tuples
 module QuandlFundamentals
-  AttributeDataset = Struct.new(
-    :ticker,
-    :attribute,
-    :attribute_values
-  )
   AttributeValue = Struct.new(:date, :value)
 
   class Client
     ZIP_FILE_PATH = "./data/fundamentals_database_<DATE>.zip"
     CSV_FILE_PATH = "./data/fundamentals_database_<DATE>.csv"
-    CSV_FIELD_COUNT = ???
-    DATABASE_NAME = "??? EOD"
+    CSV_FIELD_COUNT = 3
+    DATABASE_NAME = "SF1"
 
     attr_accessor :logger, :zip_file_path
 
@@ -32,10 +27,12 @@ module QuandlFundamentals
     # all_fundamentals
     # => #<Enumerator: all_fundamentals>
     #
-    # If called with a block (e.g. all_fundamentals {|symbol, attribute_datasets| ... }),
-    # all_fundamentals invokes the block with 2 arguments:
-    # 1. symbol - a String identifying the security's ticker symbol
-    # 2. attribute_datasets - a Hash of the form: { attributeName1 => AttributeDataset1, attributeName2 => AttributeDataset2, ... }
+    # If called with a block (e.g. all_fundamentals {|ticker,indicator,dimension,attribute_values| ... }),
+    # all_fundamentals invokes the block with 4 block arguments:
+    # 1. ticker
+    # 2. indicator
+    # 3. dimension
+    # 4. attribute values
     def all_fundamentals(&blk)
       if block_given?
         download_full_database
@@ -66,93 +63,63 @@ module QuandlFundamentals
 
     private
 
+    def csv_file_path
+      @csv_file_path ||= CSV_FILE_PATH.gsub("<DATE>", Time.now.strftime("%Y%m%d"))
+    end
+
     def extract_csv_file_from_zipped_database
-      Zip::File.open(ZIP_FILE_PATH) do |zip_file|
+      Zip::File.open(zip_file_path) do |zip_file|
         # Handle entries one by one; NOTE: there should only be a single file in the zipfile
         zip_file.each do |entry|
           # Extract file
-          log "Extracting #{entry.name} to #{CSV_FILE_PATH}"
-          entry.extract(CSV_FILE_PATH)
+          log "Extracting #{entry.name} to #{csv_file_path}"
+          entry.extract(csv_file_path)
         end
       end
     end
 
     def delete_zipped_database
-      File.delete(ZIP_FILE_PATH)
+      File.delete(zip_file_path)
     end
 
-    # # CSV_FILE_PATH is a CSV file of the form:
-    # # A,1999-11-18,45.5,50.0,40.0,44.0,44739900.0,0.0,1.0,29.84158347724813,32.792948876096844,26.234359100877477,28.857795010965223,44739900.0
-    # # A,1999-11-19,42.94,43.0,39.81,40.38,10897100.0,0.0,1.0,28.161733875159676,28.20108422524141,26.108957279229315,26.482785605005773,10897100.0
-    # # ...
-    # # ZZZ,2015-07-16,0.5,0.5,0.5,0.5,0.0,0.0,1.0,0.5,0.5,0.5,0.5,0.0
-    # # ZZZ,2015-07-17,1.0,1.01,1.0,1.0,1000.0,0.0,1.0,1.0,1.01,1.0,1.0,1000.0
-    # def enumerate_rows_in_csv(&blk)
-    #   File.foreach(CSV_FILE_PATH) do |line|
-    #     fields = line.split(',')
-    #     raise "CSV file malformed" unless fields.count == CSV_FIELD_COUNT
-    #     symbol = fields[0]
-    #     eod_bar = ::QuandlEod::EodBar.new(
-    #       fields[1].gsub("-","").to_i,
-    #       fields[2].to_f,
-    #       fields[3].to_f,
-    #       fields[4].to_f,
-    #       fields[5].to_f,
-    #       fields[6].to_f,
-    #       fields[7].to_f,
-    #       fields[8].to_f,
-    #       fields[9].to_f,
-    #       fields[10].to_f,
-    #       fields[11].to_f,
-    #       fields[12].to_f,
-    #       fields[13].to_f
-    #     )
-    #     blk.call(symbol, eod_bar)
-    #   end
-    # end
-
-    # CSV_FILE_PATH is a CSV file of the form:
-    # A,1999-11-18,45.5,50.0,40.0,44.0,44739900.0,0.0,1.0,29.84158347724813,32.792948876096844,26.234359100877477,28.857795010965223,44739900.0
-    # A,1999-11-19,42.94,43.0,39.81,40.38,10897100.0,0.0,1.0,28.161733875159676,28.20108422524141,26.108957279229315,26.482785605005773,10897100.0
+    # csv_file_path is a CSV file of the form:
+    # AAPL_ACCOCI_ARQ,2004-02-10,-31000000.0
+    # AAPL_ACCOCI_ARQ,2004-05-06,-10000000.0
+    # AAPL_ACCOCI_ARQ,2004-08-05,-18000000.0
     # ...
-    # ZZZ,2015-07-16,0.5,0.5,0.5,0.5,0.0,0.0,1.0,0.5,0.5,0.5,0.5,0.0
-    # ZZZ,2015-07-17,1.0,1.01,1.0,1.0,1000.0,0.0,1.0,1.0,1.01,1.0,1.0,1000.0
+    # AAPL_ACCOCI_MRQ,2004-03-27,-10000000.0
+    # AAPL_ACCOCI_MRQ,2004-06-26,-18000000.0
+    # AAPL_ACCOCI_MRQ,2004-09-25,-15000000.0
+    # ...
     def enumerate_rowsets_in_csv(&blk)
-      last_symbol = nil
-      eod_bars = []
-      File.foreach(CSV_FILE_PATH) do |line|
+      last_ticker_indicator_dimension = nil
+      attribute_values = []
+      File.foreach(csv_file_path) do |line|
         fields = line.split(',')
         raise "CSV file malformed" unless fields.count == CSV_FIELD_COUNT
-        symbol = fields[0]
-        eod_bar = ::QuandlEod::EodBar.new(
+        ticker_indicator_dimension = fields[0]
+        attribute_value = ::QuandlFundamentals::AttributeValue.new(
           fields[1].gsub("-","").to_i,
-          fields[2].to_f,
-          fields[3].to_f,
-          fields[4].to_f,
-          fields[5].to_f,
-          fields[6].to_f,
-          fields[7].to_f,
-          fields[8].to_f,
-          fields[9].to_f,
-          fields[10].to_f,
-          fields[11].to_f,
-          fields[12].to_f,
-          fields[13].to_f
+          fields[2].to_f
         )
-        if symbol != last_symbol && last_symbol
-          blk.call(last_symbol, eod_bars)
+        if ticker_indicator_dimension != last_ticker_indicator_dimension && last_ticker_indicator_dimension
+          symbol, indicator, dimension = last_ticker_indicator_dimension.split('_')
+          blk.call(symbol, indicator, dimension, attribute_values)
 
-          eod_bars = []
+          attribute_values = []
         end
-        eod_bars << eod_bar
-        last_symbol = symbol
+        attribute_values << attribute_value
+        last_ticker_indicator_dimension = ticker_indicator_dimension
       end
 
-      blk.call(last_symbol, eod_bars) if last_symbol
+      if last_ticker_indicator_dimension
+        symbol, indicator, dimension = last_ticker_indicator_dimension.split('_')
+        blk.call(symbol, indicator, dimension, attribute_values)
+      end
     end
 
     def delete_extracted_csv_database
-      File.delete(CSV_FILE_PATH)
+      File.delete(csv_file_path)
     end
 
     # dataset_name is a name like 'EOD/AAPL'
