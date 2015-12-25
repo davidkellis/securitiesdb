@@ -5,6 +5,13 @@ require_relative '../application'
 def seed
   CorporateActionType.create(name: "Cash Dividend")
   CorporateActionType.create(name: "Split")
+
+  FundamentalDimension.create(name: "ARY", description: "As reported, annually.")
+  FundamentalDimension.create(name: "ARQ", description: "As reported, quarterly.")
+  FundamentalDimension.create(name: "ART", description: "As reported, trailing twelve months (TTM).")
+  FundamentalDimension.create(name: "MRY", description: "Most-recent reported, annually.")
+  FundamentalDimension.create(name: "MRQ", description: "Most-recent reported, quarterly.")
+  FundamentalDimension.create(name: "MRT", description: "Most-recent reported, trailing twelve months (TTM).")
 end
 
 def main

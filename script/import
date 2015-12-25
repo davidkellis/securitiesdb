@@ -27,11 +27,20 @@ def main
   Application.load(opts[:config] || Application::DEFAULT_CONFIG_FILE_PATH)
 
   quandl_eod_client = QuandlEod::Client.new(Application.logger, opts[:quandl_eod_database])
-  # quandl_fundamentals_client = QuandlFundamentals::Client.new(Application.logger, opts[:quandl_fundamentals_database])
+  quandl_fundamentals_client = QuandlFundamentals::Client.new(Application.logger, opts[:quandl_fundamentals_database])
 
   if opts.download_dbs? || opts.all?
-    quandl_eod_client.download_full_database
-    # quandl_fundamentals_client.download_full_database
+    begin
+      quandl_eod_client.download_full_database
+    rescue => e
+      Application.logger.error("Unable to download Quandl EOD database (#{QuandlEod::Client::DATABASE_NAME}). Perhaps your subscription has run out? Error: #{e.message}")
+    end
+
+    begin
+      quandl_fundamentals_client.download_full_database
+    rescue => e
+      Application.logger.error("Unable to download Quandl fundamentals database (#{QuandlFundamentals::Client::DATABASE_NAME}). Perhaps your subscription has run out? Error: #{e.message}")
+    end
   end
 
   if opts.bsym? || opts.exchanges? || opts.all?
@@ -62,17 +71,11 @@ def main
   #   importer.import
   # end
   #
-  # if opts.quandl_fundamentals? || opts.all?
-  #   importer = QuandlFundamentalsImporter.new(quandl_fundamentals_client)
-  #   importer.import
-  # end
+  if opts.quandl_fundamentals? || opts.all?
+    importer = QuandlFundamentalsImporter.new(quandl_fundamentals_client)
+    importer.import
+  end
 
 end
 
 main if __FILE__ == $0
-
-# #!/bin/bash
-#
-# ruby importers/import_securities.rb
-# ruby importers/import_eod_bars.rb
-# ruby importers/import_dividends_and_splits.rb

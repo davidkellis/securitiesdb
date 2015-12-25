@@ -117,6 +117,16 @@ Sequel.migration do
 
     create_table :fundamental_attributes do
       primary_key :id
+      String :label, size: 255, null: false
+      String :name, size: 255, null: false
+      String :description, :text => true, null: true
+
+      index :id, unique: true
+      index :label, unique: true
+    end
+
+    create_table :fundamental_dimensions do
+      primary_key :id
       String :name, size: 255, null: false
       String :description, :text => true, null: true
 
@@ -128,45 +138,14 @@ Sequel.migration do
       primary_key :id
       foreign_key :security_id, :securities, null: false
       foreign_key :fundamental_attribute_id, :fundamental_attributes, null: false
-      BigDecimal :value, :size=>[30, 9], null: false
+      foreign_key :fundamental_dimension_id, :fundamental_dimensions, null: false
       Integer :start_date, null: false
+      BigDecimal :value, :size=>[30, 9], null: false
 
       index :id, unique: true
-      index [:security_id, :fundamental_attribute_id, :start_date], unique: true
-      index [:fundamental_attribute_id, :security_id, :start_date]
+      index [:security_id, :start_date, :fundamental_attribute_id, :fundamental_dimension_id], unique: true
+      index [:security_id, :fundamental_attribute_id, :start_date]
     end
-
-    # create_table :quarterly_reports do
-    #   primary_key :id
-    #   foreign_key :security_id, :securities, null: false
-    #   Bignum :start_time, null: false
-    #   Bignum :end_time, null: false
-    #   Bignum :publication_time, null: false
-    #   File :income_statement, null: false
-    #   File :balance_sheet, null: false
-    #   File :cash_flow_statement, null: false
-    #
-    #   index :id, unique: true
-    #   index :security_id
-    #   index :publication_time
-    #   index [:security_id, :end_time], unique: true
-    # end
-    #
-    # create_table :annual_reports do
-    #   primary_key :id
-    #   foreign_key :security_id, :securities, null: false
-    #   Bignum :start_time, null: false
-    #   Bignum :end_time, null: false
-    #   Bignum :publication_time, null: false
-    #   File :income_statement, null: false
-    #   File :balance_sheet, null: false
-    #   File :cash_flow_statement, null: false
-    #
-    #   index :id, unique: true
-    #   index :security_id
-    #   index :publication_time
-    #   index [:security_id, :end_time], unique: true
-    # end
 
   end
 end

@@ -238,7 +238,17 @@ class FundamentalAttribute < Sequel::Model
   one_to_many :fundamental_data_points
 end
 
+class FundamentalDimension < Sequel::Model
+  one_to_many :fundamental_data_points
+
+  def self.lookup(name)
+    @name_to_dimension ||= all.to_a.reduce({}) {|memo, dimension| memo[dimension.name] = dimension ; memo }
+    @name_to_dimension[name]
+  end
+end
+
 class FundamentalDataPoint < Sequel::Model
   many_to_one :security
   many_to_one :fundamental_attribute
+  many_to_one :fundamental_dimension
 end
