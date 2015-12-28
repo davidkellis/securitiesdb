@@ -23,6 +23,7 @@ class QuandlFundamentalsImporter
 
   # indicators is an array of QuandlFundamentals::Indicator objects
   def import_indicators(indicators)
+    log "Importing indicators."
     indicators.map do |indicator|
       FundamentalAttribute.create(
         label: indicator.label,
@@ -33,6 +34,7 @@ class QuandlFundamentalsImporter
   end
 
   def import_fundamentals(all_fundamentals)
+    log "Importing fundamentals."
     all_fundamentals.each do |ticker, indicator, dimension, indicator_values|
       # IndicatorValue = Struct.new(:date, :value)
       dimension ||= FundamentalDimension::INSTANTANEOUS
@@ -69,7 +71,7 @@ class QuandlFundamentalsImporter
 
   # indicator_values is an array of QuandlFundamentals::IndicatorValue objects
   def import_missing_fundamentals(security, attribute_label, dimension_name, indicator_values)
-    log "Importing #{indicator_values.count} missing values of attribute '#{attribute_label}' (dimension=#{dimension_name}) from Quandl Fundamentals database for symbol #{security.symbol} (security id=#{security.id})."
+    # log "Importing #{indicator_values.count} missing values of attribute '#{attribute_label}' (dimension=#{dimension_name}) from Quandl Fundamentals database for symbol #{security.symbol} (security id=#{security.id})."
 
     attribute = lookup_fundamental_attribute(attribute_label) || raise("Unknown fundamental attribute: #{attribute_label}.")
     dimension = lookup_fundamental_dimension(dimension_name) || raise("Unknown fundamental dimension: #{dimension_name}.")
