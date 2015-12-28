@@ -13,6 +13,7 @@ class Database
     end
 
     def_delegator :instance, :connect
+    def_delegator :instance, :connection
   end
 
   def connect(connection_string, logger = Application.database_logger)
@@ -20,8 +21,9 @@ class Database
       uri = URI(connection_string)
       case uri.scheme
       when "postgres", "mysql", "sqlite"
-        Sequel.connect(connection_string, :logger => logger)
+        connection = Sequel.connect(connection_string, :logger => logger)
         Sequel::Model.raise_on_save_failure = true
+        connection
       else
         raise "There is no database adapter for the following connection scheme: #{uri.scheme}"
       end

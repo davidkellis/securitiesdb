@@ -107,8 +107,8 @@ class Application
       require_relative 'app/importers/csidata'
       require_relative 'app/importers/quandl_eod'
       require_relative 'app/importers/quandl_fundamentals'
-      # require_relative 'app/importers/yahoo_eod'
-      # require_relative 'app/importers/yahoo_splits_and_dividends'
+      require_relative 'app/importers/yahoo_eod'
+      require_relative 'app/importers/yahoo_splits_and_dividends'
     end
 
   end

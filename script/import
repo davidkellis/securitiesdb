@@ -70,7 +70,7 @@ def main
   #   importer = YahooSplitsAndDividendsImporter.new
   #   importer.import
   # end
-  #
+
   if opts.quandl_fundamentals? || opts.all?
     importer = QuandlFundamentalsImporter.new(quandl_fundamentals_client)
     importer.import

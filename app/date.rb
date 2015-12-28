@@ -27,6 +27,16 @@ class Date
   end
 
   class << self
+    # datestamp is an int of the form yyyymmdd
+    def datestamp_to_date(datestamp)
+      day = datestamp % 100
+      datestamp = datestamp / 100
+      month = datestamp % 100
+      year = datestamp / 100
+      Date.new(year, month, day)
+    end
+
+    # timestamp is an int of the form yyyymmddHHMMSS
     def timestamp_to_date(timestamp)
       ts_str = timestamp.to_s
       year = ts_str.slice(0, 4).to_i
@@ -34,7 +44,7 @@ class Date
       day = ts_str.slice(6, 2).to_i
       Date.new(year, month, day)
     end
-  
+
     def date_series(start_date, end_date, incrementer_fn = ->(date){ date + 1 })
       series = []
       date = start_date
@@ -58,8 +68,9 @@ class Date
 
     # previousBusinessDay
     def prior_business_day(date)
-      if day_of_week(date) == DayOfWeek::Monday
-        date - 3
+      case day_of_week(date)
+      when DayOfWeek::Saturday, DayOfWeek::Sunday, DayOfWeek::Monday
+        first_weekday_before_date(DayOfWeek::Friday, date)
       else
         date - 1
       end
@@ -67,8 +78,9 @@ class Date
 
     # nextBusinessDay
     def next_business_day(date)
-      if day_of_week(date) == DayOfWeek::Friday
-        date + 3
+      case day_of_week(date)
+      when DayOfWeek::Friday, DayOfWeek::Saturday, DayOfWeek::Sunday
+        first_weekday_after_date(DayOfWeek::Monday, date)
       else
         date + 1
       end
@@ -128,7 +140,7 @@ class Date
         COMMON_YEAR_DAYS_IN_MONTH[month]
       end
     end
-    
+
     def last_day_of_month(year, month)
       Date.new(year, month, days_in_month(year, month))
     end
@@ -476,7 +488,7 @@ module DateExtensions
     def at_local_time(local_time)
       at_time(local_time.hour, local_time.minute, local_time.second)
     end
-    
+
     def to_datestamp
       (year * 100 + month) * 100 + day
     end

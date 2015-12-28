@@ -35,6 +35,7 @@ class QuandlFundamentalsImporter
   def import_fundamentals(all_fundamentals)
     all_fundamentals.each do |ticker, indicator, dimension, indicator_values|
       # IndicatorValue = Struct.new(:date, :value)
+      dimension ||= FundamentalDimension::INSTANTANEOUS
       if !indicator_values.empty?
         date_of_first_attribute_value = indicator_values.first.date
         security = @lookup_security.run(ticker, date_of_first_attribute_value)
@@ -66,9 +67,9 @@ class QuandlFundamentalsImporter
     end
   end
 
-  # attribute_values is an array of QuandlFundamentals::IndicatorValue objects
+  # indicator_values is an array of QuandlFundamentals::IndicatorValue objects
   def import_missing_fundamentals(security, attribute_label, dimension_name, indicator_values)
-    log "Importing #{attribute_values.count} missing values of attribute '#{attribute_label}' (dimension=#{dimension_name}) from Quandl Fundamentals database for symbol #{security.symbol} (security id=#{security.id})."
+    log "Importing #{indicator_values.count} missing values of attribute '#{attribute_label}' (dimension=#{dimension_name}) from Quandl Fundamentals database for symbol #{security.symbol} (security id=#{security.id})."
 
     attribute = lookup_fundamental_attribute(attribute_label) || raise("Unknown fundamental attribute: #{attribute_label}.")
     dimension = lookup_fundamental_dimension(dimension_name) || raise("Unknown fundamental dimension: #{dimension_name}.")

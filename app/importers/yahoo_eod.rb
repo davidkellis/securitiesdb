@@ -3,14 +3,37 @@ require 'date'
 class YahooEodImporter
   DEFAULT_START_DATE = Date.parse("19500101")
 
+  def initialize
+    @lookup_security = LookupSecurity.new(Exchange.us_composite, Exchange.us_stock_exchanges.to_a, nil)
+  end
+
   def import
-    securities = Security.us_exchanges.where(security_type: [SecurityType.stock, SecurityType.etp] + SecurityType.funds, bbgid_composite: nil)
+    prior_business_day = Date.prior_business_day(Date.today).strftime("%Y%m%d").to_i
+    # look up securities whose most recent EOD bar is dated more than a day ago
+    # todo, fix this query
+    securities = Security.
+                   us_exchanges.
+                   join(:eod_bars, :security_id => :id).
+                   where(
+                     security_type: [SecurityType.stock, SecurityType.etp] + SecurityType.funds,
+                   ).
+                   where {
+                     (bbgid_composite =~ nil) |     # search for securities that have no composite BBGID - these securities are traded only on a single local exchange
+                     ((bbgid_composite !~ nil) & (exchange_id =~ Exchange.us_composite.id))
+                   }.
+                   group(:securities__id).
+                   having { max(Sequel.qualify(:eod_bars, :date)) < prior_business_day }
     import_eod_bars(securities)
+  end
+
+  private
+
+  def log(msg)
+    Application.logger.info("#{Time.now} - #{msg}")
   end
 
   def import_eod_bars(securities)
     securities.each_with_index do |security, i|
-      puts i
       most_recent_eod_bar = find_most_recent_eod_bar(security)
       start_date = compute_start_date(most_recent_eod_bar)
       eod_bars = download_data(security, start_date)
@@ -20,12 +43,12 @@ class YahooEodImporter
   end
 
   def find_most_recent_eod_bar(security)
-    security.eod_bars_dataset.order(:start_time).reverse.first
+    security.eod_bars_dataset.order(:date).reverse.first
   end
 
   def compute_start_date(most_recent_eod_bar)
     if most_recent_eod_bar
-      extract_date(most_recent_eod_bar.end_time) + 1
+      Date.datestamp_to_date(most_recent_eod_bar.date) + 1
     else
       DEFAULT_START_DATE
     end
@@ -51,7 +74,7 @@ class YahooEodImporter
 
     records = []
     if start_date <= end_date
-      puts "#{ticker}:\t#{start_date} to #{end_date}"
+      log "#{ticker}:\t#{start_date} to #{end_date}"
 
       YahooFinance.get_historical_quotes(ticker, start_date, end_date) do |row|
         date, open, high, low, close, volume = *yahoo_to_default!(row)
@@ -73,16 +96,13 @@ class YahooEodImporter
   end
 
   def build_eod_record(security, date, open, high, low, close, volume)
-    start_time = "#{date}093000".to_i
-    end_time = "#{date}160000".to_i
-    EodBar.new(:security => security,
-               :start_time => start_time,
-               :end_time => end_time,
-               :open => open,
-               :high => high,
-               :low => low,
-               :close => close,
-               :volume => volume.to_i)
+    EodBar.new(security: security,
+               date: start_time,
+               open: open,
+               high: high,
+               low: low,
+               close: close,
+               volume: volume.to_i)
   end
 
   def save_bars(eod_bars)
@@ -97,27 +117,3 @@ class YahooEodImporter
     puts ">> #{e.message}"
   end
 end
-
-def get_tickers
-  ARGV.map {|arg| File.exists?(arg) ? File.readlines(arg).map(&:strip) : arg }.flatten
-end
-
-def get_securities
-  tickers = get_tickers
-  if tickers.empty?
-    # Stock.us_exchanges.union(Etp.us_exchanges).union(Fund.us_exchanges).union(Index.us_exchanges)
-    Etp.us_exchanges.union(Fund.us_exchanges).union(Index.us_exchanges)
-  else
-    Security.us_exchanges.where(:symbol => tickers)
-  end
-end
-
-def main
-  Database.connect
-  securities = get_securities
-
-  puts "Importing eod bars for #{securities.count} securities."
-  EodBarImporter.new.import_eod_bars(securities)
-end
-
-main if __FILE__ == $0

@@ -62,17 +62,6 @@ module QuandlFundamentals
       end
     end
 
-    # returns a Hash of the form:
-    # { symbol1 => {attributeName1 => AttributeDataset1, attributeName2 => AttributeDataset2, ...}, symbol2 => {...}, ... }
-    def fundamentals(symbols = [])
-      symbols.reduce({}) do |memo, symbol|
-        dataset_name = "#{DATABASE_NAME}/#{symbol}"
-        dataset = get_dataset(dataset_name)
-        memo[symbol] = build_eod_bars_from_dataset(dataset)
-        memo
-      end
-    end
-
     def download_full_database
       Quandl::Database.get(DATABASE_NAME).bulk_download_to_file(zip_file_path) unless File.exists?(zip_file_path)
     end
@@ -121,10 +110,18 @@ module QuandlFundamentals
         fields = line.split(',')
         raise "CSV file malformed" unless fields.count == CSV_FIELD_COUNT
         ticker_indicator_dimension = fields[0]
-        indicator_value = ::QuandlFundamentals::IndicatorValue.new(
-          fields[1].gsub("-","").to_i,
-          fields[2].to_f
-        )
+        indicator_value = if ticker_indicator_dimension.end_with?("_EVENT")
+          sign, significant_digits, base, exponent = BigDecimal.new(fields[2]).split
+          ::QuandlFundamentals::IndicatorValue.new(
+            fields[1].gsub("-","").to_i,
+            significant_digits.to_f    # this is to remove meaningless zeros at the tail end of the EVENT value (e.g. AAL_EVENT,2013-12-09,1.1122123333232e+25); see http://www.sharadar.com/meta/indicator/EVENT
+          )
+        else
+          ::QuandlFundamentals::IndicatorValue.new(
+            fields[1].gsub("-","").to_i,
+            fields[2].to_f
+          )
+        end
         if ticker_indicator_dimension != last_ticker_indicator_dimension && last_ticker_indicator_dimension
           ticker, indicator, dimension = last_ticker_indicator_dimension.split('_')
           blk.call(ticker, indicator, dimension, indicator_values)
@@ -143,31 +140,6 @@ module QuandlFundamentals
 
     def delete_extracted_csv_database
       File.delete(csv_file_path)
-    end
-
-    # dataset_name is a name like 'EOD/AAPL'
-    def get_dataset(dataset_name)
-      Quandl::Dataset.get(dataset_name)
-    end
-
-    def build_eod_bars_from_dataset(dataset)
-      dataset.data.map do |record|
-        ::QuandlEod::EodBar.new(
-          record.date.strftime("%Y%m%d").to_i,
-          record.open,
-          record.high,
-          record.low,
-          record.close,
-          record.volume,
-          record.dividend,
-          record.split,
-          record.adj_open,
-          record.adj_high,
-          record.adj_low,
-          record.adj_close,
-          record.adj_volume
-        )
-      end
     end
 
   end

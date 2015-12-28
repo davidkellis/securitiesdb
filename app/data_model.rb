@@ -239,11 +239,17 @@ class FundamentalAttribute < Sequel::Model
 end
 
 class FundamentalDimension < Sequel::Model
+  INSTANTANEOUS = "INST"
+
   one_to_many :fundamental_data_points
 
   def self.lookup(name)
     @name_to_dimension ||= all.to_a.reduce({}) {|memo, dimension| memo[dimension.name] = dimension ; memo }
     @name_to_dimension[name]
+  end
+
+  def self.instantaneous
+    lookup(INSTANTANEOUS)
   end
 end
 

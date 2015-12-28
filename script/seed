@@ -6,6 +6,7 @@ def seed
   CorporateActionType.create(name: "Cash Dividend")
   CorporateActionType.create(name: "Split")
 
+  FundamentalDimension.create(name: "INST", description: "Instantaneous point in time snapshot.")
   FundamentalDimension.create(name: "ARY", description: "As reported, annually.")
   FundamentalDimension.create(name: "ARQ", description: "As reported, quarterly.")
   FundamentalDimension.create(name: "ART", description: "As reported, trailing twelve months (TTM).")

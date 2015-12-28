@@ -140,7 +140,7 @@ Sequel.migration do
       foreign_key :fundamental_attribute_id, :fundamental_attributes, null: false
       foreign_key :fundamental_dimension_id, :fundamental_dimensions, null: false
       Integer :start_date, null: false
-      BigDecimal :value, :size=>[30, 9], null: false
+      BigDecimal :value, size: [30, 9], null: false
 
       index :id, unique: true
       index [:security_id, :start_date, :fundamental_attribute_id, :fundamental_dimension_id], unique: true
