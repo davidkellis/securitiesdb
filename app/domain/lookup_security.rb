@@ -8,8 +8,8 @@ class LookupSecurity
   # search for the security
   # (1) in the appropriate composite exchange,
   # (2) in the appropriate constituent (local) exchanges,
-  # and finally (3) in the catch-all exchange
-  def run(symbol, date)
+  # and finally (3) in the catch-all exchanges
+  def run(symbol, date = nil)
     # 1. search for the security in the appropriate composite exchange
     begin
       if @composite_exchange
@@ -34,10 +34,17 @@ class LookupSecurity
     # 3. if not found in (1) or (2), search in the appropriate catch-all exchange(s)
     begin
       if @catch_all_exchanges && !@catch_all_exchanges.empty?
-        securities_in_catch_all_exchanges = Security.
-                                              where(symbol: symbol, exchange_id: @catch_all_exchanges.map(&:id)).
-                                              where { (start_date <= date) & (end_date >= date) }.
-                                              to_a
+        securities_in_catch_all_exchanges = if date
+          Security.
+            where(symbol: symbol, exchange_id: @catch_all_exchanges.map(&:id)).
+            where { (start_date <= date) & (end_date >= date) }.
+            to_a
+        else
+          Security.
+            where(symbol: symbol, exchange_id: @catch_all_exchanges.map(&:id)).
+            to_a
+        end
+
         case securities_in_catch_all_exchanges.count
         when 0
           nil
