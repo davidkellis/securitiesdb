@@ -257,4 +257,15 @@ class FundamentalDataPoint < Sequel::Model
   many_to_one :security
   many_to_one :fundamental_attribute
   many_to_one :fundamental_dimension
+
+  def summary
+    {
+      exchange_name: security.exchange.name,
+      security_name: security.name,
+      security_symbol: security.symbol,
+      fundamental_attribute_label: fundamental_attribute.label,
+      fundamental_attribute_name: fundamental_attribute.name,
+      fundamental_dimension_name: fundamental_dimension.name
+    }
+  end
 end

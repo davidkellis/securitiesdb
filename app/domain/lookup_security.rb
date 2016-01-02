@@ -1,4 +1,15 @@
 class LookupSecurity
+  def self.us_stocks
+    @us_stocks ||= LookupSecurity.new(Exchange.us_composite, Exchange.us_stock_exchanges.to_a, Exchange.catch_all_stock)
+  end
+
+  def self.us_indices
+    @us_indices ||= LookupSecurity.new(nil, Exchange.cboe.to_a, Exchange.catch_all_index)
+  end
+
+
+  # any of the 3 arguments may be nil
+  # if supplied, local_exchange_or_exchanges and catch_all_exchange_or_exchanges are both arrays of Exchanges
   def initialize(composite_exchange, local_exchange_or_exchanges, catch_all_exchange_or_exchanges)
     @composite_exchange = composite_exchange
     @local_exchanges = [local_exchange_or_exchanges].flatten

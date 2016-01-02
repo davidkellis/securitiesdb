@@ -3,7 +3,7 @@ require 'zip'
 
 class QuandlFundamentalsImporter
   def initialize(quandl_fundamentals_client)
-    @lookup_security = LookupSecurity.new(Exchange.us_composite, Exchange.us_stock_exchanges.to_a, Exchange.catch_all_stock)
+    @lookup_security = LookupSecurity.us_stocks
     @client = quandl_fundamentals_client
   end
 
