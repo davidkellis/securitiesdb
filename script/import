@@ -14,8 +14,8 @@ def main
     o.bool '--quandl-eod', "Import EOD prices, splits, and dividends for US traded stocks from Quandl's EOD database (see https://www.quandl.com/data/EOD/)."
     o.string '--quandl-eod-database', "Quandl EOD full database snapshot file path. (e.g. ./data/eod_database_20151222.zip)"
     o.bool '--yahoo-eod', "Import EOD prices, splits, and dividends for stocks/ETFs/ETNs from Yahoo! Finance."
-    o.bool '--quandl-fundamentals', "Import stock fundamentals for US traded stocks from Quandl's ??? database (see ???)."
-    o.string '--quandl-fundamentals-database', "Quandl fundamentals full database snapshot file path. (e.g. ./data/fundamentals_database_20151222.zip)"
+    o.bool '--quandl-fundamentals', "Import stock fundamentals for US traded stocks from Quandl's Core US Fundamentals database (see https://www.quandl.com/data/SF1/)."
+    o.string '--quandl-fundamentals-database', "Quandl Core US Fundamentals full database snapshot file path. (e.g. ./data/fundamentals_database_20151222.zip)"
     o.string '--config', 'Config file path'
     o.on '--help' do
       puts o

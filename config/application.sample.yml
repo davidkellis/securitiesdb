@@ -1,5 +1,5 @@
 database:
-  connection_string: postgres://username@localhost/database_name
+  connection_string: postgres://username@localhost/database_name OR jdbc:postgresql://localhost/database_name?user=username
 log_level: info
 database_log_level: error
 quandl:

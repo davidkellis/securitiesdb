@@ -2,6 +2,10 @@ require 'forwardable'
 require 'sequel'
 require 'uri'
 
+if RUBY_PLATFORM == "java"    # check to see if we're running jruby for JRuby
+  require 'jdbc/postgres'
+end
+
 class Database
   attr_reader :connection
 
@@ -21,6 +25,10 @@ class Database
       uri = URI(connection_string)
       case uri.scheme
       when "postgres", "mysql", "sqlite"
+        connection = Sequel.connect(connection_string, :logger => logger)
+        Sequel::Model.raise_on_save_failure = true
+        connection
+      when "jdbc"
         connection = Sequel.connect(connection_string, :logger => logger)
         Sequel::Model.raise_on_save_failure = true
         connection

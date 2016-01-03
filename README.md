@@ -5,12 +5,21 @@ securitiesdb
 
 Prerequisites:
 - Install Firefox (the Bsym library screen scrapes http://bsym.bloomberg.com/sym/ using the watir-webdriver gem + Firefox)
-- Install Postgres libraries so that step 2 can install the pg gem.
+- Install Postgres libraries so that step 2 can install the pg gem (this is only applicable if using MRI, as JRuby doesn't need the pg gem).
 
 
-1. Install ruby 2.2.3
+1. Install Ruby or JRuby
    ```
    rbenv install 2.2.3
+   ```
+   OR
+   ```
+   rbenv install jruby-9.0.4.0
+   ```
+
+   Set the JRUBY_OPTS environment variable in your ~/.bash_profile to a few GB of memory:
+   ```
+   export JRUBY_OPTS=-J-Xmx8g
    ```
 
 2. Install bundler (if not already installed)

@@ -1,10 +1,13 @@
 source "https://rubygems.org"
 
-ruby "2.2.3"
-
 gem "sequel"
-gem "pg"
-gem "sequel_pg"
+
+# for ruby 2.2.3
+# gem "pg"
+# gem "sequel_pg"
+
+# for JRuby
+gem "jdbc-postgres"
 
 gem "settingslogic"
 gem "logging"
