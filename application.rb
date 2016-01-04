@@ -1,28 +1,3 @@
-# require_relative 'lib/yahoofinance'
-#
-# require_relative 'config'
-# require_relative 'database'
-#
-# require_relative 'date'
-# require_relative 'stats'
-# require_relative 'time'
-
-# require_relative 'downloaders/fundamental_data_downloader'
-# require_relative 'downloaders/profile_downloader'
-# require_relative 'downloaders/split_history_downloader'
-# require_relative 'downloaders/security_downloader'
-# require_relative 'protobuf/tradesim.pb'
-
-# require_relative 'importers/import_annual_reports'
-# require_relative 'importers/import_dividends'
-# require_relative 'importers/import_eod_bars'
-# require_relative 'importers/import_profiles'
-# require_relative 'importers/import_quarterly_reports'
-# require_relative 'importers/import_securities'
-# require_relative 'importers/import_splits'
-
-
-
 require 'rubygems'
 require 'bundler/setup'
 
@@ -100,6 +75,7 @@ class Application
       require_relative 'app/clients/quandl_fundamentals'
       require_relative 'app/clients/yahoofinance'
 
+      require_relative 'app/domain/lookup_fundamentals'
       require_relative 'app/domain/lookup_security'
 
       require_relative 'app/importers/bsym_exchanges'
