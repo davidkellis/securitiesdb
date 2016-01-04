@@ -240,6 +240,12 @@ end
 
 class FundamentalDimension < Sequel::Model
   INSTANTANEOUS = "INST"
+  ARQ = "ARQ"
+  ARY = "ARY"
+  ART = "ART"
+  MRQ = "MRQ"
+  MRY = "MRY"
+  MRT = "MRT"
 
   one_to_many :fundamental_data_points
 
@@ -250,6 +256,36 @@ class FundamentalDimension < Sequel::Model
 
   def self.instantaneous
     lookup(INSTANTANEOUS)
+  end
+
+  # as reported, quarterly
+  def self.arq
+    lookup(ARQ)
+  end
+
+  # as reported, annually
+  def self.ary
+    lookup(ARY)
+  end
+
+  # as reported, TTM
+  def self.art
+    lookup(ART)
+  end
+
+  # most recent reported, quarterly
+  def self.mrq
+    lookup(MRQ)
+  end
+
+  # most recent reported, annually
+  def self.mry
+    lookup(MRY)
+  end
+
+  # most recent reported, TTM
+  def self.mrt
+    lookup(MRT)
   end
 end
 
