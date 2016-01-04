@@ -75,6 +75,14 @@ class TimeSeriesTable
   end
 end
 
+def eod_bars_to_close_column(security)
+  security.eod_bars.map {|bar| [bar.date, bar.close.to_f] }
+end
+
+def fundamentals_column(security, attribute_name, dimension_name)
+  LookupFundamentals.all(security, attribute_name, dimension_name).map {|fundamental_data_point| [fundamental_data_point.start_date, fundamental_data_point.value.to_f] }
+end
+
 def build_table
   apple = LookupSecurity.us_stocks.run("AAPL")
   google = LookupSecurity.us_stocks.run("GOOGL")
@@ -94,7 +102,7 @@ def build_table
   sp500 = LookupSecurity.us_indices.run("SPX Index")
 
   table = TimeSeriesTable.new
-  table.add_column("AAPL EOD", apple.eod_bars.map {|bar| [bar.date, bar.close.to_f] })
-  table.add_column("AAPL EPS", LookupFundamentals.all(apple, "EPS", "ARQ").map {|fdp| [fdp.start_date, fdp.value.to_f] }, :most_recent_or_omit)
+  table.add_column("AAPL EOD", eod_bars_to_close_column(apple))
+  table.add_column("AAPL EPS", fundamentals_column(apple, "EPS", "ARQ"), :most_recent_or_omit)
   table.to_csv
 end
