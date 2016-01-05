@@ -1,6 +1,12 @@
 securitiesdb
 ============
 
+This project populates a local postgres database with security symbols, un-adjusted EOD data, splits, dividends, and fundamental data.
+
+- Symbols are sourced from Bloomberg Open Symbology. (see http://bsym.bloomberg.com/sym/)
+- EOD data, splits, and dividends are sourced from Quandl's $50/month EOD database. (see https://www.quandl.com/data/EOD/)
+- Fundamental data is sourced from Quandl's $150/quarter SF1 database. (see https://www.quandl.com/data/SF1/)
+
 ## Setup
 
 Prerequisites:
