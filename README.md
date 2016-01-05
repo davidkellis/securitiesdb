@@ -56,7 +56,3 @@ Prerequisites:
 ```
 script/reset_db
 ```
-
-## Misc
-
-counts = Fund.all.map{|f| f.eod_bars.count }.reject{|count| count == 0}; counts.reduce(&:+) / counts.count
