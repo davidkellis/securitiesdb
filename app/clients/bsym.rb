@@ -46,22 +46,22 @@ module Bsym
     BsymField.new("ID236", "ID_BB_GLOBAL_SHARE_CLASS_LEVEL", "Security Share Class Level Bloomberg Global Id")
   ].map {|f| [f.mnemonic, f] }.to_h
 
-  PricingSource = Struct.new(:yellow_key_database, :pricing_source, :description)
+  PricingSource = Struct.new(:yellow_key_database, :label, :description)
 
   SecurityType = Struct.new(:market_sector, :security_type)
 
   ExchangeCode = Struct.new(:composite_exchange_code, :composite_exchange_name, :local_exchange_code, :local_exchange_name)
 
-  # Security fields:
+  # Security fields (for more info about what each field means, see http://bsym.bloomberg.com/sym/pages/bsym-whitepaper.pdf):
   # "NAME",                    # name
   # "ID_BB_SEC_NUM_DES",       # ticker
   # "FEED_SOURCE",             # pricing source === exchange label
-  # "ID_BB_SEC_NUM_SRC",       # BSID (=== id of pricing source)
-  # "ID_BB_UNIQUE",            # unique id
-  # "SECURITY_TYP",            # security type
-  # "MARKET_SECTOR_DES",       # market sector (e.g. Equity/Bond/etc.)
-  # "ID_BB_GLOBAL",            # bloomberg global id (unique per security per exchange)
-  # "COMPOSITE_ID_BB_GLOBAL",  # bloomberg global composite id (unique per security - shared across exchanges)
+  # "ID_BB_SEC_NUM_SRC",       # irrelevant - BSID (Bloomberg Security ID Number with Source) - e.g. 1095270768082
+  # "ID_BB_UNIQUE",            # irrelevant - unique id - e.g. IX26248014-0
+  # "SECURITY_TYP",            # security type - corresponds to the Bloomberg Yellow Key - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+  # "MARKET_SECTOR_DES",       # market sector (e.g. Equity/Bond/etc.) - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+  # "ID_BB_GLOBAL",            # FIGI (formerly BBGID) - bloomberg global id (unique per security per exchange) - e.g. BBG009T64180
+  # "COMPOSITE_ID_BB_GLOBAL",  # bloomberg global composite id (unique per security - shared across exchanges) - **not always defined** - e.g. BBG000GGBTC7
   # "FEED_EID1",
   # "FEED_EID2",
   # "FEED_EID3",
@@ -89,23 +89,16 @@ module Bsym
     SECURITY_TYPES_URL = "http://bsym.bloomberg.com/sym/pages/security_type.csv"
     SECURITY_TYPES_HEADER_ROW = "Market Sector,Security Type"
 
-    PREDEFINED_FILES = {
-      common_stock: "http://bdn-ak.bloomberg.com/precanned/Equity_Common_Stock_<DATE>.txt.zip",
-      equity_index: "http://bdn-ak.bloomberg.com/precanned/Index_Equity_Index_<DATE>.txt.zip",
-      etp: "http://bdn-ak.bloomberg.com/precanned/Equity_ETP_<DATE>.txt.zip",
-      fund_of_funds: "http://bdn-ak.bloomberg.com/precanned/Equity_Fund_of_Funds_<DATE>.txt.zip",
-      mutual_fund: "http://bdn-ak.bloomberg.com/precanned/Equity_Mutual_Fund_<DATE>.txt.zip",
-      open_end_fund: "http://bdn-ak.bloomberg.com/precanned/Equity_Open-End_Fund_<DATE>.txt.zip"
-    }
-    SECURITIES_LIST_HEADER_ROW = ["NAME",
-                                  "ID_BB_SEC_NUM_DES",
-                                  "FEED_SOURCE",
-                                  "ID_BB_SEC_NUM_SRC",
-                                  "ID_BB_UNIQUE",
-                                  "SECURITY_TYP",
-                                  "MARKET_SECTOR_DES",
-                                  "ID_BB_GLOBAL",
-                                  "COMPOSITE_ID_BB_GLOBAL",
+    # for more info about what each field means, see http://bsym.bloomberg.com/sym/pages/bsym-whitepaper.pdf
+    SECURITIES_LIST_HEADER_ROW = ["NAME",                     # name
+                                  "ID_BB_SEC_NUM_DES",        # ticker
+                                  "FEED_SOURCE",              # pricing source === exchange label
+                                  "ID_BB_SEC_NUM_SRC",        # irrelevant - BSID (Bloomberg Security ID Number with Source) - e.g. 1095270768082
+                                  "ID_BB_UNIQUE",             # irrelevant - unique id - e.g. IX26248014-0
+                                  "SECURITY_TYP",             # security type - corresponds to the Bloomberg Yellow Key - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+                                  "MARKET_SECTOR_DES",        # market sector (e.g. Equity/Bond/etc.) - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+                                  "ID_BB_GLOBAL",             # FIGI (formerly BBGID) - bloomberg global id (unique per security per exchange) - e.g. BBG009T64180
+                                  "COMPOSITE_ID_BB_GLOBAL",   # bloomberg global composite id (unique per security - shared across exchanges) - **not always defined** - e.g. BBG000GGBTC7
                                   "FEED_EID1",
                                   "FEED_EID2",
                                   "FEED_EID3",
@@ -116,6 +109,16 @@ module Bsym
                                   "Subscription String 3"].join("|")
     SECURITIES_LIST_CELL_COUNT = 17
 
+    attr_accessor :logger
+
+    def initialize(logger)
+      @logger = logger
+    end
+
+    def log(msg)
+      Application.logger.info("#{Time.now} - #{msg}")
+    end
+
     # the BsymFields were taken from the table of fields documented in the Open Fields tab of http://bsym.bloomberg.com/sym/ as of Nov. 6, 2015.
     def open_fields
       BsymFields
@@ -123,9 +126,9 @@ module Bsym
 
     # returns the contents of http://bsym.bloomberg.com/sym/pages/pricing_source.xls as an array of PricingSource objects, of the form:
     # [
-    #   #<struct PricingSource yellow_key_database="Equity", pricing_source="A0", description="Asset Match MTF">,
-    #   #<struct PricingSource yellow_key_database="Equity, Index", pricing_source="AA", description="Athens Exchange Alternative Market">,
-    #   #<struct PricingSource yellow_key_database="Corporate, Government, Preferred", pricing_source="AABA", description="RBS HK & KR Government Bonds">,
+    #   #<struct PricingSource yellow_key_database="Equity", label="A0", description="Asset Match MTF">,
+    #   #<struct PricingSource yellow_key_database="Equity, Index", label="AA", description="Athens Exchange Alternative Market">,
+    #   #<struct PricingSource yellow_key_database="Corporate, Government, Preferred", label="AABA", description="RBS HK & KR Government Bonds">,
     #   ...
     # ]
     def pricing_sources
@@ -191,6 +194,7 @@ module Bsym
     #   #<struct SecurityType market_sector="Comdty", security_type="Financial commodity generic.">,
     #   ...
     # ]
+    # A security type is essentially equivalent to an asset class category.
     def security_types
       csv_contents = Net::HTTP.get(URI(SECURITY_TYPES_URL))
       rows = CSV.parse(csv_contents, headers: false, return_headers: false, skip_lines: /^(\s*,\s*)*$/)
@@ -257,6 +261,44 @@ module Bsym
       end
     end
 
+
+    # Securities
+
+    def all_securities
+      predefined_files.values.reduce([]) {|memo, url| memo + get_securities(url).to_a }
+    end
+
+    def stocks
+      get_securities_from_predefined_file("Equity/Common Stock")
+    end
+
+    def etps
+      get_securities_from_predefined_file("Equity/ETP")
+    end
+
+    def fund_of_funds
+      get_securities_from_predefined_file("Equity/Fund of Funds")
+    end
+
+    def mutual_funds
+      get_securities_from_predefined_file("Equity/Mutual Fund")
+    end
+
+    def open_end_funds
+      get_securities_from_predefined_file("Equity/Open-End Fund")
+    end
+
+    # includes all fund_of_funds, mutual_funds, and open_end_funds
+    def funds
+      fund_of_funds.to_a +
+      mutual_funds.to_a +
+      open_end_funds.to_a
+    end
+
+    def indices
+      get_securities_from_predefined_file("Index/Equity Index")
+    end
+
     # predefined_file_security_type is one of the keys from the hash returned by #predefined_files
     def get_securities_from_predefined_file(predefined_file_security_type, &blk)
       url = predefined_files[predefined_file_security_type]
@@ -295,7 +337,7 @@ module Bsym
                 if row.size == SECURITIES_LIST_CELL_COUNT
                   yield convert_row_to_security(row)
                 else
-                  puts "Cannot parse row in #{url}, zip entry index #{txt_file_index}: #{line}"
+                  log "Cannot parse row in #{url}, zip entry index #{txt_file_index}: #{line}"
                 end
               end
             end
@@ -313,12 +355,12 @@ module Bsym
     # ["NAME",                    # name
     #  "ID_BB_SEC_NUM_DES",       # ticker
     #  "FEED_SOURCE",             # pricing source === exchange label
-    #  "ID_BB_SEC_NUM_SRC",       # BSID (=== id of pricing source)
-    #  "ID_BB_UNIQUE",            # unique id
-    #  "SECURITY_TYP",            # security type
-    #  "MARKET_SECTOR_DES",       # market sector (e.g. Equity/Bond/etc.)
-    #  "ID_BB_GLOBAL",            # FIGI (formerly BBGID) - bloomberg global id (unique per security per exchange)
-    #  "COMPOSITE_ID_BB_GLOBAL",  # bloomberg global composite id (unique per security - shared across exchanges)
+    #  "ID_BB_SEC_NUM_SRC",       # irrelevant - BSID (Bloomberg Security ID Number with Source) - e.g. 1095270768082
+    #  "ID_BB_UNIQUE",            # irrelevant - unique id - e.g. IX26248014-0
+    #  "SECURITY_TYP",            # security type - corresponds to the Bloomberg Yellow Key - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+    #  "MARKET_SECTOR_DES",       # market sector (e.g. Equity/Bond/etc.) - the market sector and the security type pair corresponds to the pairs listed at <SECURITY_TYPES_URL>
+    #  "ID_BB_GLOBAL",            # FIGI (formerly BBGID) - bloomberg global id (unique per security per exchange) - e.g. BBG009T64180
+    #  "COMPOSITE_ID_BB_GLOBAL",  # bloomberg global composite id (unique per security - shared across exchanges) - **not always defined** - e.g. BBG000GGBTC7
     #  "FEED_EID1",
     #  "FEED_EID2",
     #  "FEED_EID3",
@@ -328,6 +370,17 @@ module Bsym
     #  "Subscription String 2",
     #  "Subscription String 3"]
     # See http://bsym.bloomberg.com/sym/pages/bsym-whitepaper.pdf for explanation of each field
+    # Example security:
+    # <struct Bsym::Security
+    #   name="01 COMMUNIQUE LABORATORY INC",
+    #   ticker="OCQLF",
+    #   pricing_source="US",
+    #   bsid="399432597305",
+    #   unique_id="EQ0000000000088168",
+    #   security_type="Common Stock",
+    #   market_sector="Equity",
+    #   figi="BBG000GGBTC7",
+    #   composite_bbgid="BBG000GGBTC7">
     def convert_row_to_security(row)
       name, ticker, pricing_source, bsid, unique_id, security_type, market_sector, figi, composite_bbgid = *row[0..8]
 

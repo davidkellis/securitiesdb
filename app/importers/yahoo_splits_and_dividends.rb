@@ -1,9 +1,10 @@
 require 'date'
-require 'pp'
-require_relative '../application'
 
-class DividendImporter
+class YahooSplitsAndDividendsImporter
   DEFAULT_START_DATE = Date.parse("19500101")
+
+  def import
+  end
 
   def import_records(securities)
     securities.each_with_index do |security, i|
@@ -19,7 +20,7 @@ class DividendImporter
   def find_most_recent_record(security)
     most_recent_dividend = security.cash_dividends_dataset.order(:ex_date).reverse.first
     most_recent_split = security.splits_dataset.order(:ex_date).reverse.first
-    
+
     if most_recent_dividend && most_recent_split
       most_recent_dividend.ex_date.to_i >= most_recent_split.ex_date.to_i ? most_recent_dividend : most_recent_split
     else
@@ -54,18 +55,18 @@ class DividendImporter
       dividends_and_splits = YahooFinance.get_dividends_and_splits(security.symbol, start_date, end_date)
       dividends = dividends_and_splits[:dividends]
       splits = dividends_and_splits[:splits]
-      
+
       dividends = dividends.map do |row|
         ex_date, dividend_amount = *yahoo_to_default!(row)
         build_dividend(security, ex_date, dividend_amount)
       end
-      
+
       splits = splits.map do |row|
         ex_date, split_ratio = *yahoo_to_default!(row)
         reformatted_split_ratio = reformat_split_ratio(split_ratio)
         build_split(security, ex_date, reformatted_split_ratio)
       end
-      
+
       dividends + splits
     else
       []

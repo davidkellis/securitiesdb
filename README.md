@@ -3,9 +3,23 @@ securitiesdb
 
 ## Setup
 
-1. Install ruby 2.2.3
+Prerequisites:
+- Install Firefox (the Bsym library screen scrapes http://bsym.bloomberg.com/sym/ using the watir-webdriver gem + Firefox)
+- Install Postgres libraries so that step 2 can install the pg gem (this is only applicable if using MRI, as JRuby doesn't need the pg gem).
+
+
+1. Install Ruby or JRuby
    ```
    rbenv install 2.2.3
+   ```
+   OR
+   ```
+   rbenv install jruby-9.0.4.0
+   ```
+
+   Set the JRUBY_OPTS environment variable in your ~/.bash_profile to a few GB of memory:
+   ```
+   export JRUBY_OPTS=-J-Xmx8g
    ```
 
 2. Install bundler (if not already installed)
@@ -13,39 +27,35 @@ securitiesdb
    gem install bundler
    ```
 3. bundle install
-4. Change database connection string in config.yml
+4. Change database connection string in application.yml
 5. Setup Database
    ```
-   [./drop_db]
-   ./setup_db
+   script/setup_db
    ```
 
 6. Import data
+
+   To import all data:
    ```
-   script/import
-   ```
-   or
-   ```
-   ruby importers/import_securities.rb
-   ruby importers/import_eod_bars.rb [ticker1 ticker2 ...]
-   ruby importers/import_dividends_and_splits.rb [ticker1 ticker2 ...]
+   script/import --all
+   OR
+   script/import -b -c --quandl-eod --quandl-fundamentals
+   OR
+   script/import --bsym --csi --quandl-eod --quandl-fundamentals
    ```
 
-   Example:
-
-   bundle exec ruby importers/import_eod_bars.rb VFINX MIDHX RERCX ODVNX OIBNX WMGRX SAMVX TRLGX PSSMX PLFMX CMPIX PRRRX PTRRX FSIAX
-
-   bundle exec ruby importers/import_dividends_and_splits.rb VFINX MIDHX RERCX ODVNX OIBNX WMGRX SAMVX TRLGX PSSMX PLFMX CMPIX PRRRX PTRRX FSIAX
-
+   To import only exchanges:
+   ```
+   script/import -e
+   OR
+   script/import --exchanges
+   ```
 
 ## Reset Database
 
-delete from sampling_distributions;
-delete from trials;
-delete from securities_trial_sets;
-delete from trial_set_distributions;
-delete from trial_sets;
-
+```
+script/reset_db
+```
 
 ## Misc
 

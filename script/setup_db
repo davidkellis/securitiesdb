@@ -1,3 +1,5 @@
 #!/bin/bash
 
-createdb securitiesdb -h localhost && migrate && seed
+MYDIR="$(dirname "$(which "$0")")"
+
+$MYDIR/create_db && $MYDIR/migrate && $MYDIR/seed

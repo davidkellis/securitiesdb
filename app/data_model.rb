@@ -8,38 +8,54 @@ POSTGRES_BIGINT_MAX = 2**63-1
 class Exchange < Sequel::Model
   one_to_many :securities
 
+  many_to_one :composite_exchange, class: self
+  one_to_many :constituent_exchanges, key: :composite_exchange_id, class: self
+
+  # NYSE MKT - formerly the American Stock Exchange (AMEX)
+  def self.amex
+    @amex ||= where(label: "UA")
+  end
+
   # CBOE - Chicago Board Options Exchange
   def self.cboe
     @cboe ||= where(label: "CBOE")
   end
 
-  def self.amex
-    @amex ||= where(label: "UA")
+  def self.dow_jones
+    @dow ||= where(label: "DJI")
   end
 
   # see http://www.nasdaqomx.com/transactions/markets/nasdaq
   # The NASDAQ Stock Market is comprised of three market tiers:
-  # - The NASDAQ Global Select Market (bloomberg: UW)
-  # - The NASDAQ Global Market (formerly the NASDAQ National Market) (bloomberg: UQ)
-  # - The NASDAQ Capital Market (formerly the NASDAQ SmallCap Market) (bloomberg: UR)
+  # - The NASDAQ Global Select Market (bloomberg: UW) - most exclusive Nasdaq market
+  # - The NASDAQ Global Market (formerly the NASDAQ National Market) (bloomberg: UQ) - more exclusive than Capital Market, less exclusive than Global Select Market
+  # - The NASDAQ Capital Market (formerly the NASDAQ SmallCap Market) (bloomberg: UR) - least exclusive Nasdaq Market
   def self.nasdaq
     @nasdaq ||= where(label: ["UW", "UQ", "UR"])
   end
 
   def self.nyse
-    @nyse ||= where(label: "UN")      # NYSE (not NYSE Arca)
+    @nyse ||= where(label: "UN")      # NYSE
+  end
+
+  def self.nyse_arca
+    @nyse ||= where(label: "UP")      # NYSE Arca
   end
 
   def self.otc_bulletin_board
-    @otc ||= where(label: "UU")
+    @otc_bb ||= where(label: "UU")
   end
 
   def self.otc
-    @non_otc ||= where(label: "UV")
+    @otc ||= where(label: "UV")
   end
 
-  def self.us_composite
-    @us_composite ||= where(label: "US")
+  def self.otc_markets
+    @otc_markets ||= where(label: "PQ")
+  end
+
+  def self.russell
+    @russell ||= where(label: ["RUSS", "RUSL"])
   end
 
   def self.us_stock_exchanges
@@ -47,7 +63,31 @@ class Exchange < Sequel::Model
   end
 
   def self.us_exchanges
-    us_stock_exchanges.union(cboe)
+    us_composite.constituent_exchanges +    # constituent_exchanges = ["PQ", "UA", "UB", "UC", "UD", "UE", "UF", "UL", "UM", "UN", "UO", "UP", "UQ", "UR", "UT", "UU", "UV", "UW", "UX", "VJ", "VK", "VY"]
+      cboe.to_a +
+      dow_jones.to_a +
+      russell.to_a +
+      [us_composite]
+  end
+
+  def self.us_composite
+    @us_composite ||= first(label: "US", is_composite_exchange: true)
+  end
+
+  def self.catch_all_index
+    @catch_all_index ||= first(label: "INDEX", is_composite_exchange: false)
+  end
+
+  def self.catch_all_mutual
+    @catch_all_mutual ||= first(label: "MUTUAL", is_composite_exchange: false)
+  end
+
+  def self.catch_all_stock
+    @catch_all_stock ||= first(label: "STOCK", is_composite_exchange: false)
+  end
+
+  def self.catch_all_etp
+    @catch_all_stock ||= first(label: "ETP", is_composite_exchange: false)
   end
 end
 
@@ -59,21 +99,31 @@ class Sector < Sequel::Model
   one_to_many :securities
 end
 
-class Security < Sequel::Model
-  plugin :single_table_inheritance, :type
+class SecurityType < Sequel::Model
+  one_to_many :securities
 
+  def self.stock
+    first(name: "Common Stock")   # Market Sector/Security Type => Equity/Common Stock
+  end
+
+  def self.etp
+    first(name: "ETP")            # Market Sector/Security Type => Equity/ETP
+  end
+
+  def self.funds
+    where(name: ["Fund of Funds", "Mutual Fund", "Open-End Fund"]).to_a    # Equity/{"Fund of Funds", "Mutual Fund", "Open-End Fund"}
+  end
+end
+
+class Security < Sequel::Model
   one_to_many :eod_bars
   one_to_many :corporate_actions
-  one_to_many :cash_dividends
-  one_to_many :splits
-  one_to_many :annual_reports
-  one_to_many :quarterly_reports
+  one_to_many :fundamental_data_points
 
   many_to_one :exchange
+  many_to_one :security_type
   many_to_one :industry
   many_to_one :sector
-
-  many_to_many :trial_sets, :join_table => :securities_trial_sets
 
   # CBOE - Chicago Board Options Exchange
   def self.cboe
@@ -116,160 +166,142 @@ class Security < Sequel::Model
   end
 
   def self.us_exchanges
-    us_stock_exchanges.union(cboe)
+    qualify.
+      join(:exchanges, :id => :exchange_id).
+      where(Sequel.qualify(:exchanges, :label) => Exchange.us_exchanges.map(&:label))
   end
-end
 
-class Stock < Security
-end
-
-class Etp < Security
-end
-
-class Fund < Security
-end
-
-class Index < Security
+  def self.indices
+    qualify.
+      join(:security_types, :id => :security_type_id).
+      where(Sequel.qualify(:security_types, :market_sector) => "Index")
+  end
 end
 
 class EodBar < Sequel::Model
   many_to_one :security
 end
 
+class CorporateActionType < Sequel::Model
+  one_to_many :corporate_actions
+
+  def self.cash_dividend
+    @cash_dividend ||= first(name: "Cash Dividend")
+  end
+
+  def self.split
+    @split ||= first(name: "Split")
+  end
+end
+
 class CorporateAction < Sequel::Model
-  plugin :single_table_inheritance, :type
-
   many_to_one :security
-end
+  many_to_one :corporate_action_type
 
-class Split < CorporateAction
-end
-
-class CashDividend < CorporateAction
-end
-
-class QuarterlyReport < Sequel::Model
-  many_to_one :security
-
-  def deserialized_income_statement
-    FinancialStatement.decode(income_statement)
+  def self.create_cash_dividend(security_id, ex_date, declaration_date, record_date, payable_date, adjustment_factor)
+    CorporateAction.create(
+      security_id: security_id,
+      corporate_action_type_id: CorporateActionType.cash_dividend.id,
+      ex_date: ex_date,
+      declaration_date: declaration_date,
+      record_date: record_date,
+      payable_date: payable_date,
+      adjustment_factor: adjustment_factor
+    )
   end
 
-  def deserialized_balance_sheet
-    FinancialStatement.decode(balance_sheet)
-  end
-
-  def deserialized_cash_flow_statement
-    FinancialStatement.decode(cash_flow_statement)
+  def self.create_split(security_id, ex_date, adjustment_factor)
+    CorporateAction.create(
+      security_id: security_id,
+      corporate_action_type_id: CorporateActionType.split.id,
+      ex_date: ex_date,
+      adjustment_factor: adjustment_factor
+    )
   end
 end
 
-class AnnualReport < Sequel::Model
-  many_to_one :security
-end
-
-class Strategy < Sequel::Model
-  module Names
-    BuyAndHold = "Buy And Hold"
-  end
-
-  one_to_many :trial_sets
-end
-
-class TrialSet < Sequel::Model
-  many_to_one :strategy
-  one_to_many :trials
-  one_to_many :trial_set_distributions
-  many_to_many :sampling_distributions, :join_table => :trial_set_distributions, :right_key => :id, :right_primary_key => :trial_set_distribution_id
-  many_to_many :securities, :join_table => :securities_trial_sets
-end
-
-class TrialSetDistribution < Sequel::Model
-  module Attributes
-    Return = 'return'
-    Mae = 'mae'
-    Mfe = 'mfe'
-  end
-
-  many_to_one :trial_set
-  many_to_one :trial_set_distribution_type
-  one_to_many :sampling_distributions
-
-  def self.weekly_non_overlapping_trials
+CorporateAction.dataset_module do
+  def cash_dividends
     qualify.
-      join(:trial_set_distribution_types, :id => :trial_set_distribution_type_id).
-      where(
-        Sequel.qualify(:trial_set_distribution_types, :name) => TrialSetDistributionType::Names::WeeklyNonOverlappingTrials
-      ).
-      first
+      join(:corporate_action_types, :id => :corporate_action_type_id).
+      where(Sequel.qualify(:corporate_action_types, :name) => CorporateActionType.cash_dividend.name)
+  end
+
+  def splits
+    qualify.
+      join(:security_types, :id => :security_type_id).
+      where(Sequel.qualify(:security_types, :name) => CorporateActionType.split.name)
   end
 end
 
-class TrialSetDistributionType < Sequel::Model
-  module Names
-    WeeklyNonOverlappingTrials = "WeeklyNonOverlappingTrials"
-  end
-
-  one_to_many :trial_set_distributions
+class FundamentalAttribute < Sequel::Model
+  one_to_many :fundamental_data_points
 end
 
-class SampleStatistic < Sequel::Model
-  one_to_many :sampling_distributions
-end
+class FundamentalDimension < Sequel::Model
+  INSTANTANEOUS = "INST"
+  ARQ = "ARQ"
+  ARY = "ARY"
+  ART = "ART"
+  MRQ = "MRQ"
+  MRY = "MRY"
+  MRT = "MRT"
 
-class SamplingDistribution < Sequel::Model
-  many_to_one :trial_set_distribution
-  one_through_one :trial_set, :join_table => :trial_set_distributions, :left_key => :id, :left_primary_key => :trial_set_distribution_id, :right_key => :trial_set_id
-  many_to_one :sample_statistic
-end
+  one_to_many :fundamental_data_points
 
-class Trial < Sequel::Model
-  many_to_one :trial_set
-
-  def deserialized_transaction_log
-    TransactionLog.decode(transaction_log)
+  def self.lookup(name)
+    @name_to_dimension ||= all.to_a.reduce({}) {|memo, dimension| memo[dimension.name] = dimension ; memo }
+    @name_to_dimension[name]
   end
 
-  def deserialized_portfolio_value_log
-    PortfolioValueLog.decode(portfolio_value_log)
+  def self.instantaneous
+    lookup(INSTANTANEOUS)
   end
-  #
-  # def securities
-  #   trial_set.securities
-  # end
-  #
-  # # returns a list of BigDecimals
-  # def portfolio_values
-  #   @portfolio_values ||= deserialized_portfolio_value_log.portfolioValues.map {|portfolio_value| BigDecimal.new(portfolio_value.value) }
-  # end
-  #
-  # def portfolio_value_stats
-  #   @online_variance ||= begin
-  #     online_variance = Stats::OnlineVariance.new
-  #     portfolio_values.each {|value| online_variance.push(value) }
-  #     online_variance
-  #   end
-  # end
-  #
-  # def yield
-  #   initial_value = portfolio_values.first
-  #   final_value = portfolio_values.last
-  #   final_value / initial_value
-  # end
-  #
-  # def maximum_favorable_excursion
-  #   initial_value = portfolio_values.first
-  #   max_value = portfolio_value_stats.max
-  #   max_value / initial_value
-  # end
-  #
-  # def maximum_adverse_excursion
-  #   initial_value = portfolio_values.first
-  #   min_value = portfolio_value_stats.min
-  #   min_value / initial_value
-  # end
-  #
-  # def variance
-  #   portfolio_value_stats.variance
-  # end
+
+  # as reported, quarterly
+  def self.arq
+    lookup(ARQ)
+  end
+
+  # as reported, annually
+  def self.ary
+    lookup(ARY)
+  end
+
+  # as reported, TTM
+  def self.art
+    lookup(ART)
+  end
+
+  # most recent reported, quarterly
+  def self.mrq
+    lookup(MRQ)
+  end
+
+  # most recent reported, annually
+  def self.mry
+    lookup(MRY)
+  end
+
+  # most recent reported, TTM
+  def self.mrt
+    lookup(MRT)
+  end
+end
+
+class FundamentalDataPoint < Sequel::Model
+  many_to_one :security
+  many_to_one :fundamental_attribute
+  many_to_one :fundamental_dimension
+
+  def summary
+    {
+      exchange_name: security.exchange.name,
+      security_name: security.name,
+      security_symbol: security.symbol,
+      fundamental_attribute_label: fundamental_attribute.label,
+      fundamental_attribute_name: fundamental_attribute.name,
+      fundamental_dimension_name: fundamental_dimension.name
+    }
+  end
 end

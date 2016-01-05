@@ -1,3 +1,5 @@
 #!/bin/bash
 
-drop_db && setup_db
+MYDIR="$(dirname "$(which "$0")")"
+
+($MYDIR/drop_db 2> /dev/null) && $MYDIR/setup_db
