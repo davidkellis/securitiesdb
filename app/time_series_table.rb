@@ -23,7 +23,7 @@ class TimeSeriesTable
     @columns[column_name] = Column.new(column_name, build_navigable_map(datestamp_value_pairs), missing_values_behavior)
   end
 
-  def to_a(include_column_headers = true)
+  def to_a(include_column_headers = true, include_date_column = true)
     common_dates = identify_common_dates_among_core_columns
     sorted_common_dates = common_dates.to_a.sort
     table = sorted_common_dates.map do |datestamp|
@@ -39,15 +39,20 @@ class TimeSeriesTable
           raise "Unknown missing value behavior, \"#{column.missing_values_behavior}\", for column #{column.name}."
         end
       end
-      row.unshift(datestamp) if row
+      row.unshift(datestamp) if row && include_date_column
+      row
     end
     table.compact!    # remove any rows that were nil due to being omitted
-    table.unshift(columns.values.map(&:name).unshift("Date")) if include_column_headers
+    if include_column_headers
+      column_headers = columns.values.map(&:name)
+      column_headers.unshift("Date") if include_date_column
+      table.unshift(column_headers)
+    end
     table
   end
 
-  def to_csv
-    to_a.map {|row| row.join(',') }.join("\n")
+  def to_csv(include_column_headers = true, include_date_column = true)
+    to_a(include_column_headers, include_date_column).map {|row| row.join(',') }.join("\n")
   end
 
   def no_fill_columns
@@ -75,34 +80,77 @@ class TimeSeriesTable
   end
 end
 
-def eod_bars_to_close_column(security)
-  security.eod_bars.map {|bar| [bar.date, bar.close.to_f] }
-end
+class TimeSeriesTableBuilder
+  def eod_bars_to_close_column(security)
+    security.eod_bars.map {|bar| [bar.date, bar.close.to_f] }
+  end
 
-def fundamentals_column(security, attribute_name, dimension_name)
-  LookupFundamentals.all(security, attribute_name, dimension_name).map {|fundamental_data_point| [fundamental_data_point.start_date, fundamental_data_point.value.to_f] }
-end
+  # returns array of the form:
+  # [
+  #   {:attribute_name=>"Accumulated Other Comprehensive Income",
+  #    :attribute_label=>"ACCOCI",
+  #    :dimension_name=>"ARQ"},
+  #   {:attribute_name=>"Accumulated Other Comprehensive Income",
+  #    :attribute_label=>"ACCOCI",
+  #    :dimension_name=>"ARY"},
+  #   ...
+  # ]
+  def identify_fundamentals_tracked_for(security)
+    Database.connection.fetch(
+      """
+        select distinct attr.name AS attribute_name, attr.label AS attribute_label, dim.name AS dimension_name
+        from fundamental_data_points dp
+        inner join fundamental_attributes attr on attr.id = dp.fundamental_attribute_id
+        inner join fundamental_dimensions dim on dim.id = dp.fundamental_dimension_id
+        where dp.security_id = ?
+      """,
+      security.id
+    )
+  end
 
-def build_table
-  apple = LookupSecurity.us_stocks.run("AAPL")
-  google = LookupSecurity.us_stocks.run("GOOGL")
-  microsoft = LookupSecurity.us_stocks.run("MSFT")
-  exxon = LookupSecurity.us_stocks.run("XOM")
-  ge = LookupSecurity.us_stocks.run("GE")
-  jnj = LookupSecurity.us_stocks.run("JNJ")
-  amazon = LookupSecurity.us_stocks.run("AMZN")
-  wellsfargo = LookupSecurity.us_stocks.run("WFC")
-  berkshire_hathaway = LookupSecurity.us_stocks.run("BRK.B")
-  jpmorgan = LookupSecurity.us_stocks.run("JPM")
+  def identify_arq_fundamentals_tracked_for(security)
+    rows = identify_fundamentals_tracked_for(security)
+    rows.select {|row| row[:dimension_name] == "ARQ" }
+  end
 
-  xiv = LookupSecurity.us_stocks.run("XIV")
-  vxx = LookupSecurity.us_stocks.run("VXX")
+  def identify_inst_fundamentals_tracked_for(security)
+    rows = identify_fundamentals_tracked_for(security)
+    rows.select {|row| row[:dimension_name] == "INST" }
+  end
 
-  vix = LookupSecurity.us_indices.run("VIX Index")
-  sp500 = LookupSecurity.us_indices.run("SPX Index")
+  def fundamentals_column(security, attribute_name, dimension_name)
+    LookupFundamentals.all(security, attribute_name, dimension_name).map {|fundamental_data_point| [fundamental_data_point.start_date, fundamental_data_point.value.to_f] }
+  end
 
-  table = TimeSeriesTable.new
-  table.add_column("AAPL EOD", eod_bars_to_close_column(apple))
-  table.add_column("AAPL EPS", fundamentals_column(apple, "EPS", "ARQ"), :most_recent_or_omit)
-  table.to_csv
+  def build_table
+    apple = LookupSecurity.us_stocks.run("AAPL")
+    google = LookupSecurity.us_stocks.run("GOOGL")
+    microsoft = LookupSecurity.us_stocks.run("MSFT")
+    exxon = LookupSecurity.us_stocks.run("XOM")
+    ge = LookupSecurity.us_stocks.run("GE")
+    jnj = LookupSecurity.us_stocks.run("JNJ")
+    amazon = LookupSecurity.us_stocks.run("AMZN")
+    wellsfargo = LookupSecurity.us_stocks.run("WFC")
+    berkshire_hathaway = LookupSecurity.us_stocks.run("BRK.B")
+    jpmorgan = LookupSecurity.us_stocks.run("JPM")
+
+    xiv = LookupSecurity.us_stocks.run("XIV")
+    vxx = LookupSecurity.us_stocks.run("VXX")
+
+    vix = LookupSecurity.us_indices.run("VIX Index")
+    sp500 = LookupSecurity.us_indices.run("SPX Index")
+
+    table = TimeSeriesTable.new
+    arq_attribute_dimension_pairs = identify_arq_fundamentals_tracked_for(apple)
+    inst_attribute_dimension_pairs = identify_inst_fundamentals_tracked_for(apple)
+    table.add_column("AAPL EOD", eod_bars_to_close_column(apple))
+    # table.add_column("AAPL EPS", fundamentals_column(apple, "EPS", "ARQ"), :most_recent_or_omit)
+    arq_attribute_dimension_pairs.each do |row|
+      attribute_name = row[:attribute_name]
+      attribute_label = row[:attribute_label]
+      dimension_name = row[:dimension_name]
+      table.add_column("AAPL #{attribute_name}", fundamentals_column(apple, attribute_label, dimension_name), :most_recent_or_omit)
+    end
+    puts table.to_csv(true, false)
+  end
 end

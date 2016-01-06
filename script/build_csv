@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+require 'irb'
+require_relative '../application'
+
+def main
+  Application.load(ARGV.first || Application::DEFAULT_CONFIG_FILE_PATH)
+  TimeSeriesTableBuilder.new.build_table
+end
+
+main if __FILE__ == $0
