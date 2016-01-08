@@ -305,3 +305,39 @@ class FundamentalDataPoint < Sequel::Model
     }
   end
 end
+
+
+# time dimension-specific time series classes (e.g. daily, monthly, yearly)
+
+class DataVendor < Sequel::Model
+  one_to_many :time_series
+end
+
+class TimeSeries < Sequel::Model
+  many_to_one :data_vendor
+  one_to_many :daily_observations
+  one_to_many :weekly_observations
+  one_to_many :monthly_observations
+  one_to_many :quarterly_observations
+  one_to_many :yearly_observations
+end
+
+class DailyObservation < Sequel::Model
+  many_to_one :time_series
+end
+
+class WeeklyObservation < Sequel::Model
+  many_to_one :time_series
+end
+
+class MonthlyObservation < Sequel::Model
+  many_to_one :time_series
+end
+
+class QuarterlyObservation < Sequel::Model
+  many_to_one :time_series
+end
+
+class YearlyObservation < Sequel::Model
+  many_to_one :time_series
+end

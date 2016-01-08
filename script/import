@@ -11,6 +11,7 @@ def main
     o.bool '-c', '--csi', 'Import CSI Data - Exchanges and Symbols'
     o.bool '-d', '--download_dbs', "Download full database snapshots from Quandl."
     o.bool '-e', '--exchanges', 'Import Bloomberg Open Symbology Exchanges'
+    o.bool '--quandl-bls', "Import BLS time series from Quandl's BLS databases (see https://www.quandl.com/data/BLSE/ and https://www.quandl.com/data/BLSP/)."
     o.bool '--quandl-eod', "Import EOD prices, splits, and dividends for US traded stocks from Quandl's EOD database (see https://www.quandl.com/data/EOD/)."
     o.string '--quandl-eod-database', "Quandl EOD full database snapshot file path. (e.g. ./data/eod_database_20151222.zip)"
     o.bool '--yahoo-eod', "Import EOD prices, splits, and dividends for stocks/ETFs/ETNs from Yahoo! Finance."
@@ -73,6 +74,11 @@ def main
 
   if opts.quandl_fundamentals? || opts.all?
     importer = QuandlFundamentalsImporter.new(quandl_fundamentals_client)
+    importer.import
+  end
+
+  if opts.quandl_bls? || opts.all?
+    importer = QuandlBlsImporter.new
     importer.import
   end
 

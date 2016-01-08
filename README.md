@@ -6,6 +6,7 @@ This project populates a local postgres database with security symbols, un-adjus
 - Symbols are sourced from Bloomberg Open Symbology. (see http://bsym.bloomberg.com/sym/)
 - EOD data, splits, and dividends are sourced from Quandl's $50/month EOD database. (see https://www.quandl.com/data/EOD/)
 - Fundamental data is sourced from Quandl's $150/quarter SF1 database. (see https://www.quandl.com/data/SF1/)
+- Employment, inflation and prices, pay and benefits, and productivity data are sourced from Quandl's free BLSE, BLSI, BLSB, and BLSP databases. (see https://www.quandl.com/data/BLSE, https://www.quandl.com/data/BLSI, https://www.quandl.com/data/BLSB, and https://www.quandl.com/data/BLSP)
 
 ## Setup
 
