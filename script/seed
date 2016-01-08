@@ -13,6 +13,8 @@ def seed
   FundamentalDimension.create(name: "MRY", description: "Most-recent reported, annually.")
   FundamentalDimension.create(name: "MRQ", description: "Most-recent reported, quarterly.")
   FundamentalDimension.create(name: "MRT", description: "Most-recent reported, trailing twelve months (TTM).")
+
+  DataVendor.create(name: "Quandl")
 end
 
 def main

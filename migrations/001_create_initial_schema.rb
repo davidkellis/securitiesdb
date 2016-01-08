@@ -71,7 +71,6 @@ Sequel.migration do
       Bignum :volume, null: false
 
       index :id, unique: true
-      index :security_id
       index [:security_id, :date], unique: true
     end
 
@@ -143,8 +142,77 @@ Sequel.migration do
       BigDecimal :value, size: [30, 9], null: false
 
       index :id, unique: true
-      index [:security_id, :start_date, :fundamental_attribute_id, :fundamental_dimension_id], unique: true
-      index [:security_id, :fundamental_attribute_id, :start_date]
+      index [:security_id, :fundamental_attribute_id, :start_date, :fundamental_dimension_id], unique: true
+    end
+
+
+    # time dimension-specific time series tables (e.g. daily, weekly, monthly, quarterly, yearly)
+
+    create_table :data_vendors do
+      primary_key :id
+      String :name, size: 255, null: false
+    end
+
+    create_table :time_series do
+      primary_key :id
+      foreign_key :data_vendor_id, :data_vendors, null: false
+      String :database, size: 255, null: false
+      String :dataset, size: 255, null: false
+      String :name, size: 255, null: false
+      String :description, text: true, null: true
+
+      index :id, unique: true
+      index [:data_vendor_id, :database, :dataset], unique: true
+    end
+
+    create_table :daily_observations do
+      primary_key :id
+      foreign_key :time_series_id, :time_series, null: false
+      Integer :date, null: false
+      BigDecimal :value, size: [30, 9], null: false
+
+      index :id, unique: true
+      index [:time_series_id, :date], unique: true
+    end
+
+    create_table :weekly_observations do
+      primary_key :id
+      foreign_key :time_series_id, :time_series, null: false
+      Integer :date, null: false
+      BigDecimal :value, size: [30, 9], null: false
+
+      index :id, unique: true
+      index [:time_series_id, :date], unique: true
+    end
+
+    create_table :monthly_observations do
+      primary_key :id
+      foreign_key :time_series_id, :time_series, null: false
+      Integer :date, null: false
+      BigDecimal :value, size: [30, 9], null: false
+
+      index :id, unique: true
+      index [:time_series_id, :date], unique: true
+    end
+
+    create_table :quarterly_observations do
+      primary_key :id
+      foreign_key :time_series_id, :time_series, null: false
+      Integer :date, null: false
+      BigDecimal :value, size: [30, 9], null: false
+
+      index :id, unique: true
+      index [:time_series_id, :date], unique: true
+    end
+
+    create_table :yearly_observations do
+      primary_key :id
+      foreign_key :time_series_id, :time_series, null: false
+      Integer :date, null: false
+      BigDecimal :value, size: [30, 9], null: false
+
+      index :id, unique: true
+      index [:time_series_id, :date], unique: true
     end
 
   end
