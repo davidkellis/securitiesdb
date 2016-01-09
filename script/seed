@@ -15,6 +15,13 @@ def seed
   FundamentalDimension.create(name: "MRT", description: "Most-recent reported, trailing twelve months (TTM).")
 
   DataVendor.create(name: "Quandl")
+
+  UpdateFrequency.create(label: "Daily")
+  UpdateFrequency.create(label: "Weekly")
+  UpdateFrequency.create(label: "Monthly")
+  UpdateFrequency.create(label: "Quarterly")
+  UpdateFrequency.create(label: "Yearly")
+  UpdateFrequency.create(label: "Irregular")
 end
 
 def main

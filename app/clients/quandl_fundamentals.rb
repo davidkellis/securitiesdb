@@ -5,14 +5,14 @@ require 'zip'
 # QuandlFundamentals retrieves the fundamentals data on US-traded securities
 # The Quandl Fundamentals dataset is conceptually a set of security-attribute-value-date tuples
 module QuandlFundamentals
-  Indicator = Struct.new(:label, :title, :available_dimensions, :statement, :description, :na_value)
+  Indicator = Struct.new(:label, :title, :available_dimensions, :statement, :description, :na_value, :units)
   IndicatorValue = Struct.new(:date, :value)
 
   class Client
     ZIP_FILE_PATH = "./data/fundamentals_database_<DATE>.zip"
     CSV_FILE_PATH = "./data/fundamentals_database_<DATE>.csv"
-    INDICATORS_URL = "http://www.sharadar.com/meta/indicators.txt"
-    INDICATOR_LISTING_HEADER = ["Indicator", "Title", "Available Dimensions", "Statement", "Description", "NA Value"]
+    INDICATORS_URL = "http://www.sharadar.com/meta/indicators.txt"      # referenced at https://www.quandl.com/data/SF1/documentation/indicators
+    INDICATOR_LISTING_HEADER = ["Indicator", "Title", "Available Dimensions", "Statement", "Description", "NA Value", "Units"]
     CSV_FIELD_COUNT = 3
     DATABASE_NAME = "SF1"
 
