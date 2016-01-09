@@ -32,12 +32,14 @@ def main
 
   if opts.download_dbs? || opts.all?
     begin
+      Application.logger.info("Downloading Quandl EOD database.")
       quandl_eod_client.download_full_database
     rescue => e
       Application.logger.error("Unable to download Quandl EOD database (#{QuandlEod::Client::DATABASE_NAME}). Perhaps your subscription has run out? Error: #{e.message}")
     end
 
     begin
+      Application.logger.info("Downloading Quandl Core US Fundamentals database.")
       quandl_fundamentals_client.download_full_database
     rescue => e
       Application.logger.error("Unable to download Quandl fundamentals database (#{QuandlFundamentals::Client::DATABASE_NAME}). Perhaps your subscription has run out? Error: #{e.message}")
