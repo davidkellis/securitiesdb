@@ -56,9 +56,9 @@ class QuandlFundamentalsImporter
         date_of_first_attribute_value = indicator_values.first.date
         security = @lookup_security.run(ticker, date_of_first_attribute_value)    # identify the security that was actively trading under the ticker at that date
         if security
-          fundamental_dataset = lookup_fundamental_dataset(security, indicator, fundamental_dimension_name) ||
+          fundamental_dataset = LookupFundamentals.lookup_fundamental_dataset(security, indicator, fundamental_dimension_name) ||
                                   create_fundamental_dataset(security, indicator, fundamental_dimension_name)
-          most_recent_attribute_value = lookup_fundamental_observations_dataset(fundamental_dataset, fundamental_dimension_name).
+          most_recent_attribute_value = LookupFundamentals.lookup_fundamental_observations_dataset(fundamental_dataset, fundamental_dimension_name).
                                           reverse_order(:date).
                                           first
           if most_recent_attribute_value
@@ -76,25 +76,13 @@ class QuandlFundamentalsImporter
     end
   end
 
-  def lookup_fundamental_dataset(security, fundamental_attribute_label, fundamental_dimension_name)
-    security.
-      fundamental_datasets_dataset.
-      join(:fundamental_attributes, :id => :fundamental_attribute_id).
-      join(:fundamental_dimensions, :id => :fundamental_datasets__fundamental_dimension_id).
-      where(
-        Sequel.qualify(:fundamental_attributes, :label) => fundamental_attribute_label,
-        Sequel.qualify(:fundamental_dimensions, :name) => fundamental_dimension_name
-      ).
-      first
-  end
-
   def create_fundamental_dataset(security, fundamental_attribute_label, fundamental_dimension_name)
     update_frequency = case fundamental_dimension_name
-    when INSTANTANEOUS
+    when FundamentalDimension::INSTANTANEOUS
       UpdateFrequency.irregular
-    when ARQ, MRQ, ART_Q, MRT_Q
+    when FundamentalDimension::ARQ, FundamentalDimension::MRQ, FundamentalDimension::ART_Q, FundamentalDimension::MRT_Q
       UpdateFrequency.quarterly
-    when ARY, MRY
+    when FundamentalDimension::ARY, FundamentalDimension::MRY
       UpdateFrequency.yearly
     else
       raise "Unknown fundamental dimension name: #{fundamental_dimension_name}"
@@ -157,20 +145,6 @@ class QuandlFundamentalsImporter
 
   def lookup_fundamental_dimension(dimension_name)
     FundamentalDimension.lookup(dimension_name)
-  end
-
-  def lookup_fundamental_observations_dataset(fundamental_dataset, fundamental_dimension_name)
-    time_series = fundamental_dataset.time_series
-    case fundamental_dimension_name
-    when INSTANTANEOUS
-      time_series.irregular_observations_dataset
-    when ARQ, MRQ, ART_Q, MRT_Q
-      time_series.quarterly_observations_dataset
-    when ARY, MRY
-      time_series.yearly_observations_dataset
-    else
-      raise "Unknown fundamental dimension name: #{fundamental_dimension_name}"
-    end
   end
 
 end
