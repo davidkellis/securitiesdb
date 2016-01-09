@@ -1,3 +1,4 @@
 #!/bin/bash
 
+echo "Dropping securitiesdb database from localhost."
 dropdb securitiesdb -h localhost

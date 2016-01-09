@@ -26,6 +26,7 @@ end
 
 def main
   Application.load(ARGV.first || Application::DEFAULT_CONFIG_FILE_PATH)
+  puts "Seeding database."
   seed
 end
 
