@@ -118,7 +118,7 @@ end
 class Security < Sequel::Model
   one_to_many :eod_bars
   one_to_many :corporate_actions
-  one_to_many :fundamental_data_points
+  one_to_many :fundamental_datasets
 
   many_to_one :exchange
   many_to_one :security_type
@@ -235,7 +235,7 @@ CorporateAction.dataset_module do
 end
 
 class FundamentalAttribute < Sequel::Model
-  one_to_many :fundamental_data_points
+  one_to_many :fundamental_datasets
 end
 
 class FundamentalDimension < Sequel::Model
@@ -247,7 +247,7 @@ class FundamentalDimension < Sequel::Model
   MRY = "MRY"
   MRT = "MRT"
 
-  one_to_many :fundamental_data_points
+  one_to_many :fundamental_datasets
 
   def self.lookup(name)
     @name_to_dimension ||= all.to_a.reduce({}) {|memo, dimension| memo[dimension.name] = dimension ; memo }
@@ -289,10 +289,11 @@ class FundamentalDimension < Sequel::Model
   end
 end
 
-class FundamentalDataPoint < Sequel::Model
+class FundamentalDataset < Sequel::Model
   many_to_one :security
   many_to_one :fundamental_attribute
   many_to_one :fundamental_dimension
+  many_to_one :time_series      # fundamental_datasets-to-time_series is really a one-to-one association
 
   def summary
     {
@@ -313,13 +314,58 @@ class DataVendor < Sequel::Model
   one_to_many :time_series
 end
 
+class UpdateFrequency < Sequel::Model
+  DAILY = "Daily"
+  WEEKLY = "Weekly"
+  MONTHLY = "Monthly"
+  QUARTERLY = "Quarterly"
+  YEARLY = "Yearly"
+  IRREGULAR = "Irregular"
+
+  one_to_many :time_series
+
+  def self.lookup(label)
+    @label_to_update_frequency ||= all.to_a.reduce({}) {|memo, update_frequency| memo[update_frequency.label] = update_frequency; memo }
+    @label_to_update_frequency[label]
+  end
+
+  def self.daily
+    lookup(DAILY)
+  end
+
+  def self.weekly
+    lookup(WEEKLY)
+  end
+
+  def self.monthly
+    lookup(MONTHLY)
+  end
+
+  def self.quarterly
+    lookup(QUARTERLY)
+  end
+
+  def self.yearly
+    lookup(YEARLY)
+  end
+
+  def self.irregular
+    lookup(IRREGULAR)
+  end
+end
+
 class TimeSeries < Sequel::Model
   many_to_one :data_vendor
+  many_to_one :update_frequency
+
   one_to_many :daily_observations
   one_to_many :weekly_observations
   one_to_many :monthly_observations
   one_to_many :quarterly_observations
   one_to_many :yearly_observations
+  one_to_many :irregular_observations
+
+  one_to_one :fundamental_dataset
 end
 
 class DailyObservation < Sequel::Model
@@ -339,5 +385,9 @@ class QuarterlyObservation < Sequel::Model
 end
 
 class YearlyObservation < Sequel::Model
+  many_to_one :time_series
+end
+
+class IrregularObservation < Sequel::Model
   many_to_one :time_series
 end

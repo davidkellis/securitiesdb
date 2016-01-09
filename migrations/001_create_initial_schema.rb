@@ -133,16 +133,15 @@ Sequel.migration do
       index :name, unique: true
     end
 
-    create_table :fundamental_data_points do
+    create_table :fundamental_datasets do
       primary_key :id
       foreign_key :security_id, :securities, null: false
       foreign_key :fundamental_attribute_id, :fundamental_attributes, null: false
       foreign_key :fundamental_dimension_id, :fundamental_dimensions, null: false
-      Integer :start_date, null: false
-      BigDecimal :value, size: [30, 9], null: false
+      foreign_key :time_series_id, :time_series, null: false
 
       index :id, unique: true
-      index [:security_id, :fundamental_attribute_id, :start_date, :fundamental_dimension_id], unique: true
+      index [:security_id, :fundamental_attribute_id, :fundamental_dimension_id, :time_series_id], unique: true
     end
 
 
@@ -153,12 +152,18 @@ Sequel.migration do
       String :name, size: 255, null: false
     end
 
+    create_table :update_frequencies do
+      primary_key :id
+      String :label, size: 255, null: false
+    end
+
     create_table :time_series do
       primary_key :id
       foreign_key :data_vendor_id, :data_vendors, null: false
+      foreign_key :update_frequency_id, :update_frequencies, null: false
       String :database, size: 255, null: false
       String :dataset, size: 255, null: false
-      String :name, size: 255, null: false
+      String :name, size: 255, null: true
       String :description, text: true, null: true
 
       index :id, unique: true
@@ -206,6 +211,16 @@ Sequel.migration do
     end
 
     create_table :yearly_observations do
+      primary_key :id
+      foreign_key :time_series_id, :time_series, null: false
+      Integer :date, null: false
+      BigDecimal :value, size: [30, 9], null: false
+
+      index :id, unique: true
+      index [:time_series_id, :date], unique: true
+    end
+
+    create_table :irregular_observations do
       primary_key :id
       foreign_key :time_series_id, :time_series, null: false
       Integer :date, null: false

@@ -31,8 +31,8 @@ class QuandlBlsImporter
     TimeSeries.first(data_vendor_id: data_vendor.id, database: database, dataset: dataset)
   end
 
-  def create_time_series(data_vendor, database, dataset, name, description = nil)
-    TimeSeries.create(data_vendor_id: data_vendor.id, database: database, dataset: dataset, name: name, description: description)
+  def create_time_series(data_vendor, database, dataset, update_frequency, name, description = nil)
+    TimeSeries.create(data_vendor_id: data_vendor.id, database: database, dataset: dataset, update_frequency_id: update_frequency.id, name: name, description: description)
   end
 
   def import_quandl_time_series_database(quandl_database_code)
@@ -48,7 +48,8 @@ class QuandlBlsImporter
 
   def import_quandl_dataset(dataset)
     log("Importing Quandl dataset #{dataset.database_code}/#{dataset.dataset_code} - #{dataset.name}.")
-    ts = lookup_time_series(@vendor, dataset.database_code, dataset.dataset_code) || create_time_series(@vendor, dataset.database_code, dataset.dataset_code, dataset.name, dataset.description)
+    update_frequency = UpdateFrequency.lookup(dataset.frequency) || UpdateFrequency.irregular
+    ts = lookup_time_series(@vendor, dataset.database_code, dataset.dataset_code) || create_time_series(@vendor, dataset.database_code, dataset.dataset_code, update_frequency, dataset.name, dataset.description)
     if ts
       observation_model_class = case dataset.frequency
         when "daily"
