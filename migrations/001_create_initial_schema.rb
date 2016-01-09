@@ -146,12 +146,14 @@ Sequel.migration do
 
 
     # time dimension-specific time series tables (e.g. daily, weekly, monthly, quarterly, yearly)
+    # got the idea from http://andyfiedler.com/blog/tag/time-series/
 
     create_table :data_vendors do
       primary_key :id
       String :name, size: 255, null: false
     end
 
+    # a table to store update frequencies - daily, weekly, monthly, quarterly, yearly, irregular
     create_table :update_frequencies do
       primary_key :id
       String :label, size: 255, null: false
@@ -160,7 +162,7 @@ Sequel.migration do
     create_table :time_series do
       primary_key :id
       foreign_key :data_vendor_id, :data_vendors, null: false
-      foreign_key :update_frequency_id, :update_frequencies, null: false
+      foreign_key :update_frequency_id, :update_frequencies, null: false    # update frequency indicates which table the observations are stored in
       String :database, size: 255, null: false
       String :dataset, size: 255, null: false
       String :name, size: 255, null: true
@@ -169,6 +171,8 @@ Sequel.migration do
       index :id, unique: true
       index [:data_vendor_id, :database, :dataset], unique: true
     end
+
+    # we partition the observations into multiple tables - one table per update frequency (i.e. daily, weekly, monthly, quarterly, yearly, irregular)
 
     create_table :daily_observations do
       primary_key :id
