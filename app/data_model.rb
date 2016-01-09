@@ -242,10 +242,10 @@ class FundamentalDimension < Sequel::Model
   INSTANTANEOUS = "INST"
   ARQ = "ARQ"
   ARY = "ARY"
-  ART = "ART"
+  ART_Q = "ART-Q"
   MRQ = "MRQ"
   MRY = "MRY"
-  MRT = "MRT"
+  MRT_Q = "MRT-Q"
 
   one_to_many :fundamental_datasets
 
@@ -268,9 +268,9 @@ class FundamentalDimension < Sequel::Model
     lookup(ARY)
   end
 
-  # as reported, TTM
-  def self.art
-    lookup(ART)
+  # as reported, TTM; aggregated over quarterly observations
+  def self.art_q
+    lookup(ART_Q)
   end
 
   # most recent reported, quarterly
@@ -283,9 +283,9 @@ class FundamentalDimension < Sequel::Model
     lookup(MRY)
   end
 
-  # most recent reported, TTM
-  def self.mrt
-    lookup(MRT)
+  # most recent reported, TTM; aggregated over quarterly observations
+  def self.mrt_q
+    lookup(MRT_Q)
   end
 end
 
