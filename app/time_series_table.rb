@@ -99,10 +99,10 @@ class TimeSeriesTableBuilder
     Database.connection.fetch(
       """
         select distinct attr.name AS attribute_name, attr.label AS attribute_label, dim.name AS dimension_name
-        from fundamental_data_points dp
-        inner join fundamental_attributes attr on attr.id = dp.fundamental_attribute_id
-        inner join fundamental_dimensions dim on dim.id = dp.fundamental_dimension_id
-        where dp.security_id = ?
+        from fundamental_datasets ds
+        inner join fundamental_attributes attr on attr.id = ds.fundamental_attribute_id
+        inner join fundamental_dimensions dim on dim.id = ds.fundamental_dimension_id
+        where ds.security_id = ?
       """,
       security.id
     )
@@ -110,16 +110,17 @@ class TimeSeriesTableBuilder
 
   def identify_arq_fundamentals_tracked_for(security)
     rows = identify_fundamentals_tracked_for(security)
-    rows.select {|row| row[:dimension_name] == "ARQ" }
+    rows.select {|row| row[:dimension_name] == FundamentalDimension::ARQ }
   end
 
   def identify_inst_fundamentals_tracked_for(security)
     rows = identify_fundamentals_tracked_for(security)
-    rows.select {|row| row[:dimension_name] == "INST" }
+    rows.select {|row| row[:dimension_name] == FundamentalDimension::INSTANTANEOUS }
   end
 
   def fundamentals_column(security, attribute_name, dimension_name)
-    LookupFundamentals.all(security, attribute_name, dimension_name).map {|fundamental_data_point| [fundamental_data_point.start_date, fundamental_data_point.value.to_f] }
+    LookupFundamentals.all_observations(security, attribute_name, dimension_name).
+      map {|fundamental_observation| [fundamental_observation.date, fundamental_observation.value.to_f] }
   end
 
   def build_table
@@ -140,12 +141,14 @@ class TimeSeriesTableBuilder
     vix = LookupSecurity.us_indices.run("VIX Index")
     sp500 = LookupSecurity.us_indices.run("SPX Index")
 
+
+    arq_attribute_dimension_triples = identify_arq_fundamentals_tracked_for(apple)
+    inst_attribute_dimension_triples = identify_inst_fundamentals_tracked_for(apple)
+
     table = TimeSeriesTable.new
-    arq_attribute_dimension_pairs = identify_arq_fundamentals_tracked_for(apple)
-    inst_attribute_dimension_pairs = identify_inst_fundamentals_tracked_for(apple)
     table.add_column("AAPL EOD", eod_bars_to_close_column(apple))
     # table.add_column("AAPL EPS", fundamentals_column(apple, "EPS", "ARQ"), :most_recent_or_omit)
-    arq_attribute_dimension_pairs.each do |row|
+    arq_attribute_dimension_triples.each do |row|
       attribute_name = row[:attribute_name]
       attribute_label = row[:attribute_label]
       dimension_name = row[:dimension_name]
