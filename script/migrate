@@ -8,6 +8,7 @@ end
 
 def main
   Application.load_config(ARGV.first || Application::DEFAULT_CONFIG_FILE_PATH)
+  puts "Migrating database."
   migrate
 end
 

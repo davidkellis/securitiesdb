@@ -1,3 +1,4 @@
 #!/bin/bash
 
+echo "Creating securitiesdb database on localhost."
 createdb securitiesdb -h localhost
