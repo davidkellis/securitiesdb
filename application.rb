@@ -79,12 +79,18 @@ class Application
       require_relative 'app/domain/lookup_fundamentals'
       require_relative 'app/domain/lookup_security'
 
+      require_relative 'app/importers/quandl_time_series_importer'
       require_relative 'app/importers/bsym_exchanges'
       require_relative 'app/importers/bsym_securities'
       require_relative 'app/importers/csidata'
       require_relative 'app/importers/quandl_bls'
+      require_relative 'app/importers/quandl_cme'
       require_relative 'app/importers/quandl_eod'
+      require_relative 'app/importers/quandl_fed'
+      require_relative 'app/importers/quandl_fred'
       require_relative 'app/importers/quandl_fundamentals'
+      require_relative 'app/importers/quandl_us_census'
+      require_relative 'app/importers/quandl_us_treasury'
       require_relative 'app/importers/yahoo_eod'
       require_relative 'app/importers/yahoo_splits_and_dividends'
     end

@@ -17,7 +17,7 @@ class QuandlFundamentalsImporter
   def initialize(quandl_fundamentals_client)
     @lookup_security = LookupSecurity.us_stocks
     @client = quandl_fundamentals_client
-    @vendor = DataVendor.first(name: "Quandl")
+    @data_vendor = DataVendor.first(name: "Quandl")
   end
 
   def import
@@ -92,7 +92,7 @@ class QuandlFundamentalsImporter
     quandl_dataset_name = "#{security.symbol}_#{fundamental_attribute_label}_#{fundamental_dimension_name}"
 
     new_time_series = TimeSeries.create(
-      vendor_id: @vendor.id,
+      data_vendor_id: @data_vendor.id,
       update_frequency_id: update_frequency.id,
       database: QUANDL_CORE_US_FUNDAMENTALS_DATABASE,
       dataset: quandl_dataset_name
@@ -112,7 +112,7 @@ class QuandlFundamentalsImporter
 
     time_series = fundamental_dataset.time_series
 
-    observation_class = case time_series.update_frequency.name
+    observation_class = case time_series.update_frequency.label
     when UpdateFrequency::IRREGULAR
       IrregularObservation
     when UpdateFrequency::DAILY
