@@ -8,6 +8,9 @@ This project populates a local postgres database with security symbols, un-adjus
 - Fundamental data is sourced from Quandl's $150/quarter SF1 database. (see https://www.quandl.com/data/SF1/)
 - Employment, inflation and prices, pay and benefits, and productivity data are sourced from Quandl's free BLSE, BLSI, BLSB, and BLSP databases. (see https://www.quandl.com/data/BLSE, https://www.quandl.com/data/BLSI, https://www.quandl.com/data/BLSB, and https://www.quandl.com/data/BLSP)
 - Growth, employment, inflation, labor, manufacturing and other US economic statistics are sourced from Quandl's free FRED database. (see https://www.quandl.com/data/FRED)
+- Official US figures on money supply, interest rates, mortgages, government finances, bank assets and debt, exchange rates, industrial production are sourced from Quandl's free FED database (see https://www.quandl.com/data/FED)
+- US economic stats, imports/exports, domestic production, etc. are sourced from Quandl's USCENSUS database. (see https://www.quandl.com/data/USCENSUS)
+- US Treasury rates, yield curve rates, debt, tax revenues, etc. are sourced from Quandl's USTREASURY database. (see https://www.quandl.com/data/USTREASURY)
 
 ## Setup
 
