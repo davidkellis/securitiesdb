@@ -119,11 +119,17 @@ class Security < Sequel::Model
   one_to_many :eod_bars
   one_to_many :corporate_actions
   one_to_many :fundamental_datasets
+  one_to_many :options, key: :underlying_security_id    # this is the relation "security is the underlying security for many options; option belongs to one underlying security"
 
   many_to_one :exchange
   many_to_one :security_type
   many_to_one :industry
   many_to_one :sector
+
+  # This is the relation "security identifies one options contract; options contract is identified by one security;
+  # Alternatively, the security and the option both uniquely identify a single options contract,
+  # specified by the 4-tuple (underlying security, expiration, strike, callOrPut)"
+  one_to_one :option
 
   # CBOE - Chicago Board Options Exchange
   def self.cboe
@@ -390,4 +396,15 @@ end
 
 class IrregularObservation < Sequel::Model
   many_to_one :time_series
+end
+
+class Option < Sequel::Model
+  many_to_one :security
+  many_to_one :underlying_security, class: Security
+
+  one_to_many :eod_option_quotes
+end
+
+class EodOptionQuote < Sequel::Model
+  many_to_one :option
 end
