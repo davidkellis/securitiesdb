@@ -398,7 +398,6 @@ class IrregularObservation < Sequel::Model
   many_to_one :time_series
 end
 
-
 class Option < Sequel::Model
   many_to_one :security
   many_to_one :underlying_security, class: Security
