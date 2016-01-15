@@ -64,8 +64,13 @@ class QuandlTimeSeriesImporter
           raise "Unknown frequency, #{dataset.frequency}, referenced in Quandl dataset \"#{quandl_code}\"."
       end
       dataset.data.each do |record|
-        date = convert_date(record.date)
-        create_observation(observation_model_class, ts.id, date, record.value) unless lookup_observation(observation_model_class, ts.id, date)
+        if record.column_names == ["Date", "Value"]
+          date = convert_date(record.date)
+          create_observation(observation_model_class, ts.id, date, record.value) unless lookup_observation(observation_model_class, ts.id, date)
+        else
+          log("Dataset #{dataset.database_code}/#{dataset.dataset_code} - #{dataset.name} has an unexpected set of column names: #{record.column_names.inspect}")
+          return nil
+        end
       end
     end
   end
