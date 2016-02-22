@@ -25,6 +25,7 @@ module CsiData
 
   class Client
     CSV_URLS = {
+      all_stocks: "http://www.csidata.com/factsheets.php?type=stock&format=csv",
       amex: "http://www.csidata.com/factsheets.php?type=stock&format=csv&exchangeid=80",
       nyse: "http://www.csidata.com/factsheets.php?type=stock&format=csv&exchangeid=79",
       nasdaq_otc: "http://www.csidata.com/factsheets.php?type=stock&format=csv&exchangeid=88",
@@ -35,6 +36,10 @@ module CsiData
     }
 
     SYMBOL_LISTING_HEADER = "CsiNumber,Symbol,Name,Exchange,IsActive,StartDate,EndDate,Sector,Industry,ConversionFactor,SwitchCfDate,PreSwitchCf,LastVolume,Type,ChildExchange,Currency"
+
+    def all_stocks
+      get_securities_of_type(:all_stocks)
+    end
 
     def amex
       get_securities_of_type(:amex)
