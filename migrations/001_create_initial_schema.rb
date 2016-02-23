@@ -5,7 +5,9 @@ Sequel.migration do
     create_table :exchanges do
       primary_key :id
       String :label, size: 50, null: false
-      String :name, size: 255
+      String :name, size: 255, null: false
+      Integer :timezone_offset, null: true
+      String :currency, size: 64, null: true
 
       TrueClass :is_composite_exchange, null: false
       foreign_key :composite_exchange_id, :exchanges, null: true
@@ -33,7 +35,7 @@ Sequel.migration do
     create_table :security_types do
       primary_key :id
       String :name, size: 255, null: false
-      String :market_sector, size: 255
+      String :classification, size: 255, null: false   # this is a broader classification than the security type itself; e.g. Commodity, Equity, Index, Currency, etc.
 
       index :id, unique: true
       index :name, unique: true
@@ -45,11 +47,11 @@ Sequel.migration do
       foreign_key :security_type_id, :security_types, null: true
       foreign_key :industry_id, :industries, null: true
       foreign_key :sector_id, :sectors, null: true
-      String :name, size: 255
-      String :symbol, null: false, size: 15
-      String :figi, size: 12              # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
-      String :bbgid_composite, size: 12   # bloomberg global composite id - unique per security (but shared across exchanges within the same composite exchange)
-      Integer :csi_number, null: true     # CSI Number (identifier from csidata.com)
+      String :name, size: 255, null: false
+      String :symbol, size: 15, null: false
+      String :figi, size: 12, null: true              # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
+      String :bbgid_composite, size: 12, null: true   # bloomberg global composite id - unique per security (but shared across exchanges within the same composite exchange)
+      Integer :csi_number, null: true                 # CSI Number (identifier from csidata.com)
 
       # TrueClass :primary_listing, null: false
       Integer :start_date, null: true
@@ -58,6 +60,36 @@ Sequel.migration do
       index :id, unique: true
       index :figi, unique: true
       index [:exchange_id, :symbol, :start_date]
+    end
+
+    # An option is a 5-tuple (underlying security, expiration, strike, callOrPut, americanOrEuropean)
+    create_table :options do
+      primary_key :id
+      foreign_key :security_id, :securities, null: false
+      foreign_key :underlying_security_id, :securities, key: :id, null: false
+
+      Integer :expiration, null: false                    # date of the form yyyymmdd
+      String :type, fixed: true, size: 1, null: false     # call or put => C or P
+      BigDecimal :strike, size: [30, 9], null: false
+      String :style, fixed: true, size: 1, null: false    # American or European => A or E
+
+      index :id, unique: true
+      index [:underlying_security_id, :expiration, :strike, :type, :style], unique: true
+    end
+
+    create_table :eod_option_quotes do
+      primary_key :id
+      foreign_key :option_id, :options, null: false
+
+      Integer :date, null: false
+      BigDecimal :last, size: [30, 9], null: false
+      BigDecimal :bid, size: [30, 9], null: false
+      BigDecimal :ask, size: [30, 9], null: false
+      Integer :volume, null: false
+      Integer :open_interest, null: false
+
+      index :id, unique: true
+      index [:option_id, :date], unique: true
     end
 
     create_table :data_vendors do
@@ -111,9 +143,9 @@ Sequel.migration do
       foreign_key :security_id, :securities, null: false
       foreign_key :corporate_action_type_id, :corporate_action_types, null: false
       Integer :ex_date, null: false
-      Integer :declaration_date
-      Integer :record_date
-      Integer :payable_date
+      Integer :declaration_date, null: true
+      Integer :record_date, null: true
+      Integer :payable_date, null: true
 
       # NOTE:
       # 1. In accordance with the calculations at http://www.crsp.com/files/data_descriptions_guide_0.pdf,

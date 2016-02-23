@@ -7,7 +7,7 @@ require "slop"
 def main
   opts = Slop.parse do |o|
     o.bool '-a', '--all', "Download and import everything - exchanges, symbols, EOD data, splits, dividends, etc."
-    o.bool '-b', '--bsym', 'Import Bloomberg Open Symbology - Exchanges and Symbols'
+    # o.bool '-b', '--bsym', 'Import Bloomberg Open Symbology - Exchanges and Symbols'
     o.bool '-c', '--csi', 'Import CSI Data - Exchanges and Symbols'
     o.bool '-d', '--download_dbs', "Download full database snapshots from Quandl."
     o.bool '-e', '--exchanges', 'Import Bloomberg Open Symbology Exchanges'
@@ -50,15 +50,15 @@ def main
     end
   end
 
-  if opts.bsym? || opts.exchanges? || opts.all?
-    importer = BsymExchangesImporter.new
-    importer.import
-  end
-
-  if opts.bsym? || opts.all?
-    importer = BsymSecuritiesImporter.new
-    importer.import
-  end
+  # if opts.bsym? || opts.exchanges? || opts.all?
+  #   importer = BsymExchangesImporter.new
+  #   importer.import
+  # end
+  #
+  # if opts.bsym? || opts.all?
+  #   importer = BsymSecuritiesImporter.new
+  #   importer.import
+  # end
 
   if opts.csi? || opts.all?
     importer = CsiDataImporter.new
