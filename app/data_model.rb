@@ -184,6 +184,75 @@ class Security < Sequel::Model
   end
 end
 
+class Option < Sequel::Model
+  many_to_one :security
+  many_to_one :underlying_security, class: Security
+
+  one_to_many :eod_option_quotes
+end
+
+class EodOptionQuote < Sequel::Model
+  many_to_one :option
+end
+
+class DataVendor < Sequel::Model
+  one_to_many :time_series
+end
+
+class UpdateFrequency < Sequel::Model
+  DAILY = "Daily"
+  WEEKLY = "Weekly"
+  MONTHLY = "Monthly"
+  QUARTERLY = "Quarterly"
+  YEARLY = "Yearly"
+  IRREGULAR = "Irregular"
+
+  one_to_many :time_series
+
+  def self.lookup(label)
+    @label_to_update_frequency ||= all.to_a.reduce({}) {|memo, update_frequency| memo[update_frequency.label] = update_frequency; memo }
+    @label_to_update_frequency[label]
+  end
+
+  def self.daily
+    lookup(DAILY)
+  end
+
+  def self.weekly
+    lookup(WEEKLY)
+  end
+
+  def self.monthly
+    lookup(MONTHLY)
+  end
+
+  def self.quarterly
+    lookup(QUARTERLY)
+  end
+
+  def self.yearly
+    lookup(YEARLY)
+  end
+
+  def self.irregular
+    lookup(IRREGULAR)
+  end
+end
+
+class TimeSeries < Sequel::Model
+  many_to_one :data_vendor
+  many_to_one :update_frequency
+
+  one_to_many :daily_observations
+  one_to_many :weekly_observations
+  one_to_many :monthly_observations
+  one_to_many :quarterly_observations
+  one_to_many :yearly_observations
+  one_to_many :irregular_observations
+
+  one_to_one :fundamental_dataset
+end
+
 class EodBar < Sequel::Model
   many_to_one :security
 end
@@ -313,67 +382,7 @@ class FundamentalDataset < Sequel::Model
   end
 end
 
-
 # time dimension-specific time series classes (e.g. daily, monthly, yearly)
-
-class DataVendor < Sequel::Model
-  one_to_many :time_series
-end
-
-class UpdateFrequency < Sequel::Model
-  DAILY = "Daily"
-  WEEKLY = "Weekly"
-  MONTHLY = "Monthly"
-  QUARTERLY = "Quarterly"
-  YEARLY = "Yearly"
-  IRREGULAR = "Irregular"
-
-  one_to_many :time_series
-
-  def self.lookup(label)
-    @label_to_update_frequency ||= all.to_a.reduce({}) {|memo, update_frequency| memo[update_frequency.label] = update_frequency; memo }
-    @label_to_update_frequency[label]
-  end
-
-  def self.daily
-    lookup(DAILY)
-  end
-
-  def self.weekly
-    lookup(WEEKLY)
-  end
-
-  def self.monthly
-    lookup(MONTHLY)
-  end
-
-  def self.quarterly
-    lookup(QUARTERLY)
-  end
-
-  def self.yearly
-    lookup(YEARLY)
-  end
-
-  def self.irregular
-    lookup(IRREGULAR)
-  end
-end
-
-class TimeSeries < Sequel::Model
-  many_to_one :data_vendor
-  many_to_one :update_frequency
-
-  one_to_many :daily_observations
-  one_to_many :weekly_observations
-  one_to_many :monthly_observations
-  one_to_many :quarterly_observations
-  one_to_many :yearly_observations
-  one_to_many :irregular_observations
-
-  one_to_one :fundamental_dataset
-end
-
 class DailyObservation < Sequel::Model
   many_to_one :time_series
 end
@@ -396,15 +405,4 @@ end
 
 class IrregularObservation < Sequel::Model
   many_to_one :time_series
-end
-
-class Option < Sequel::Model
-  many_to_one :security
-  many_to_one :underlying_security, class: Security
-
-  one_to_many :eod_option_quotes
-end
-
-class EodOptionQuote < Sequel::Model
-  many_to_one :option
 end

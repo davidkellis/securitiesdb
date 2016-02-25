@@ -6,7 +6,7 @@ Sequel.migration do
       primary_key :id
       String :label, size: 50, null: false
       String :name, size: 255, null: false
-      Integer :timezone_offset, null: true
+      String :timezone_name, null: true         # this should be one of the string identifiers listed here: http://www.joda.org/joda-time/timezones.html
       String :currency, size: 64, null: true
 
       TrueClass :is_composite_exchange, null: false
@@ -49,11 +49,11 @@ Sequel.migration do
       foreign_key :sector_id, :sectors, null: true
       String :name, size: 255, null: false
       String :symbol, size: 15, null: false
+
       String :figi, size: 12, null: true              # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
-      String :bbgid_composite, size: 12, null: true   # bloomberg global composite id - unique per security (but shared across exchanges within the same composite exchange)
+      String :composite_figi, size: 12, null: true    # global composite id - unique per security (but shared across exchanges within the same composite exchange)
       Integer :csi_number, null: true                 # CSI Number (identifier from csidata.com)
 
-      # TrueClass :primary_listing, null: false
       Integer :start_date, null: true
       Integer :end_date, null: true
 
@@ -70,7 +70,7 @@ Sequel.migration do
 
       Integer :expiration, null: false                    # date of the form yyyymmdd
       String :type, fixed: true, size: 1, null: false     # call or put => C or P
-      BigDecimal :strike, size: [30, 9], null: false
+      BigDecimal :strike, size: [19, 4], null: false
       String :style, fixed: true, size: 1, null: false    # American or European => A or E
 
       index :id, unique: true
@@ -82,9 +82,9 @@ Sequel.migration do
       foreign_key :option_id, :options, null: false
 
       Integer :date, null: false
-      BigDecimal :last, size: [30, 9], null: false
-      BigDecimal :bid, size: [30, 9], null: false
-      BigDecimal :ask, size: [30, 9], null: false
+      BigDecimal :last, size: [19, 4], null: false
+      BigDecimal :bid, size: [19, 4], null: false
+      BigDecimal :ask, size: [19, 4], null: false
       Integer :volume, null: false
       Integer :open_interest, null: false
 
@@ -120,10 +120,10 @@ Sequel.migration do
       primary_key :id
       foreign_key :security_id, :securities, null: false
       Integer :date, null: false
-      BigDecimal :open, :size=>[12, 2], null: false   # single-digit billions
-      BigDecimal :high, :size=>[12, 2], null: false   # single-digit billions
-      BigDecimal :low, :size=>[12, 2], null: false    # single-digit billions
-      BigDecimal :close, :size=>[12, 2], null: false  # single-digit billions
+      BigDecimal :open, :size => [19, 4], null: false
+      BigDecimal :high, :size => [19, 4], null: false
+      BigDecimal :low, :size => [19, 4], null: false
+      BigDecimal :close, :size => [19, 4], null: false
       Bignum :volume, null: false
 
       index :id, unique: true
@@ -174,7 +174,7 @@ Sequel.migration do
       primary_key :id
       String :label, size: 255, null: false
       String :name, size: 255, null: false
-      String :description, :text => true, null: true
+      String :description, text: true, null: true
 
       index :id, unique: true
       index :label, unique: true
@@ -183,7 +183,7 @@ Sequel.migration do
     create_table :fundamental_dimensions do
       primary_key :id
       String :name, size: 255, null: false
-      String :description, :text => true, null: true
+      String :description, text: true, null: true
 
       index :id, unique: true
       index :name, unique: true
