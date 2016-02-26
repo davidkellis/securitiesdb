@@ -7,7 +7,7 @@ Sequel.migration do
       String :label, size: 50, null: false
       String :name, size: 255, null: false
       String :timezone_name, null: true         # this should be one of the string identifiers listed here: http://www.joda.org/joda-time/timezones.html
-      String :currency, size: 64, null: true
+      String :currency, size: 64, null: true    # this is an ISO 4217 currency code (see https://en.wikipedia.org/wiki/ISO_4217; e.g. USD, EUR, CHF, etc.)
 
       TrueClass :is_composite_exchange, null: false
       foreign_key :composite_exchange_id, :exchanges, null: true

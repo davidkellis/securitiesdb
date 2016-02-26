@@ -7,12 +7,61 @@ class CsiDataImporter
   UNKNOWN_INDUSTRY_NAME = "UNKNOWN"
   UNKNOWN_SECTOR_NAME = "UNKNOWN"
 
-  CSI_EXCHANGE_TO_EXCHANGE_LABEL_MAP = {
-    "AMEX" => ["UA"],
-    "NYSE" => ["UN"],
-    "OTC" => ["UW", "UQ", "UR", "UV"],                                # prefer nasdaq exchanges first (Global Select, Global Market, SmallCap Market), then OTC
-    "MUTUAL" => ["UN", "UA", "UW", "UQ", "UR", "UV", "MUTUAL"],       # put CSI mutual funds into Amex, Nyse, Nasdaq, OTC, or user-defined MUTUAL exchange
-    "INDEX" => ["UN", "UA", "UW", "UQ", "UR", "CBOE", "UV", "INDEX"]  # put CSI indices into Amex, Nyse, Nasdaq, CBOE, OTC, or user-defined INDEX exchange
+  # CSI_EXCHANGE_TO_EXCHANGE_LABEL_MAP = {
+  #   "AMEX" => ["UA"],
+  #   "NYSE" => ["UN"],
+  #   "OTC" => ["UW", "UQ", "UR", "UV"],                                # prefer nasdaq exchanges first (Global Select, Global Market, SmallCap Market), then OTC
+  #   "MUTUAL" => ["UN", "UA", "UW", "UQ", "UR", "UV", "MUTUAL"],       # put CSI mutual funds into Amex, Nyse, Nasdaq, OTC, or user-defined MUTUAL exchange
+  #   "INDEX" => ["UN", "UA", "UW", "UQ", "UR", "CBOE", "UV", "INDEX"]  # put CSI indices into Amex, Nyse, Nasdaq, CBOE, OTC, or user-defined INDEX exchange
+  # }
+
+  # this is a mapping from [CSI Exchange, CSI Child Exchange] to exchange label as defined in ExchangesImporter
+  CSI_EXCHANGE_PAIR_TO_EXCHANGE_LABEL_MAP = {
+    ["NYSE", nil] => "NYSE",
+    ["AMEX", nil] => "NYSE-MKT",
+    ["NYSE", "NYSE"] => "NYSE",
+    ["OTC", nil] => "???",
+    ["AMEX", "AMEX"] => "NYSE-MKT",
+    ["OTC", "OTC Markets Pink Sheets"] => "OTC-PINK",
+    ["OTC", "OTC Markets QX"] => "OTC-QX",
+    ["OTC", "Nasdaq Global Select"] => "NASDAQ-GSM",
+    ["OTC", "Nasdaq Global Market"] => "NASDAQ-GM",
+    ["OTC", "OTC Markets QB"] => "OTC-QB",
+    ["OTC", "Nasdaq Capital Market"] => "NASDAQ-CM",
+    ["MUTUAL", "Mutual Fund"] => "MUTUAL",
+    ["MUTUAL", nil] => "MUTUAL",
+    ["AMEX", "NYSE ARCA"] => "NYSE-ARCA",
+    ["INDEX", nil] => "INDEX",
+    ["AMEX", "NYSE"] => "NYSE",
+    ["INDEX", "Stock Indices"] => "INDEX",
+    ["FINDEX", "Foreign Stock Indices"] => "INDEX",
+    ["FINDEX", nil] => "INDEX",
+    ["OTC", "NYSE"] => "NYSE",
+    ["NYSE", "AMEX"] => "NYSE-MKT",
+    ["NYSE", "OTC Markets Pink Sheets"] => "OTC-PINK",
+    # ["TSX", "Toronto Stock Exchange"] => "???",
+    # ["VSE", "TSX Venture Exchange"] => "???",
+    # ["MSE", "Montreal Stock Exchange"] => "???",
+    ["OTC", "AMEX"] => "NYSE-MKT",
+    ["AMEX", "OTC Markets QX"] => "OTC-QX",
+    ["NYSE", "NYSE ARCA"] => "NYSE-ARCA",
+    ["NYSE", "BATS Global Markets"] => "BATS-CATCHALL",
+    # ["LSE", "London Stock Exchange"] => "???",
+    # ["ALBRTA", "Alberta Stock Exchange"] => "???",
+    # ["OTC", "Grey Market"] => "",
+    ["NYSE", "Nasdaq Capital Market"] => "NASDAQ-CM",
+    ["AMEX", "OTC Markets QB"] => "OTC-QB",
+    ["NYSE", "OTC Markets QX"] => "OTC-QX",
+    # ["VSE", "Toronto Stock Exchange"] => "",
+    ["OTC", "NYSE ARCA"] => "NYSE-ARCA",
+    ["AMEX", "OTC Markets Pink Sheets"] => "OTC-PINK",
+    ["NYSE", "OTC Markets QB"] => "OTC-QB",
+    ["NYSE", "Nasdaq Global Market"] => "NASDAQ-GM",
+    ["AMEX", "BATS Global Markets"] => "BATS-CATCHALL",
+    ["OTC", "BATS Global Markets"] => "BATS-CATCHALL",
+    # ["TSX", nil] => "",
+    ["NYSE", "Nasdaq Global Select"] => "NASDAQ-GSM"
+    # ["LSE", nil] => ""
   }
 
   attr_accessor :csi_client
