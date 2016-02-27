@@ -4,7 +4,7 @@ class LookupSecurity
   end
 
   def self.us_indices
-    @us_indices ||= LookupSecurity.new(nil, Exchange.cboe.to_a, Exchange.catch_all_index)
+    @us_indices ||= LookupSecurity.new(nil, Exchange.cboe.to_a, Exchange.indices)
   end
 
 

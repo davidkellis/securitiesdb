@@ -8,6 +8,9 @@ Sequel.migration do
       String :name, size: 255, null: false
       String :timezone_name, null: true         # this should be one of the string identifiers listed here: http://www.joda.org/joda-time/timezones.html
       String :currency, size: 64, null: true    # this is an ISO 4217 currency code (see https://en.wikipedia.org/wiki/ISO_4217; e.g. USD, EUR, CHF, etc.)
+      Integer :market_open, null: true          # time is an integer of the form hhmmss; if nil, each security traded on exchange has its own open time
+      Integer :market_close, null: true         # time is an integer of the form hhmmss; if nil, each security traded on exchange has its own close time
+      Integer :trading_window_in_days, null: true  # if trading opens and closes on same day, then this is 1; otherwise, the trading window is the number of calendar days spanned by the open trading window (e.g. 2 if market closes on day following the market open)
 
       TrueClass :is_composite_exchange, null: false
       foreign_key :composite_exchange_id, :exchanges, null: true
@@ -41,9 +44,17 @@ Sequel.migration do
       index :name, unique: true
     end
 
+    create_table :instruments do
+      primary_key :id
+      foreign_key :exchange_id, :exchanges, null: false
+      foreign_key :security_id, :securities, null: false
+      Integer :market_open, null: true              # time is an integer of the form hhmmss; if nil, each security traded on exchange has its own open time
+      Integer :market_close, null: true             # time is an integer of the form hhmmss; if nil, each security traded on exchange has its own close time
+      Integer :trading_window_in_days, null: true   # if trading opens and closes on same day, then this is 1; otherwise, the trading window is the number of calendar days spanned by the open trading window (e.g. 2 if market closes on day following the market open)
+    end
+
     create_table :securities do
       primary_key :id
-      foreign_key :exchange_id, :exchanges, null: true
       foreign_key :security_type_id, :security_types, null: true
       foreign_key :industry_id, :industries, null: true
       foreign_key :sector_id, :sectors, null: true

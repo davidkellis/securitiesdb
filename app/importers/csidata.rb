@@ -7,20 +7,12 @@ class CsiDataImporter
   UNKNOWN_INDUSTRY_NAME = "UNKNOWN"
   UNKNOWN_SECTOR_NAME = "UNKNOWN"
 
-  # CSI_EXCHANGE_TO_EXCHANGE_LABEL_MAP = {
-  #   "AMEX" => ["UA"],
-  #   "NYSE" => ["UN"],
-  #   "OTC" => ["UW", "UQ", "UR", "UV"],                                # prefer nasdaq exchanges first (Global Select, Global Market, SmallCap Market), then OTC
-  #   "MUTUAL" => ["UN", "UA", "UW", "UQ", "UR", "UV", "MUTUAL"],       # put CSI mutual funds into Amex, Nyse, Nasdaq, OTC, or user-defined MUTUAL exchange
-  #   "INDEX" => ["UN", "UA", "UW", "UQ", "UR", "CBOE", "UV", "INDEX"]  # put CSI indices into Amex, Nyse, Nasdaq, CBOE, OTC, or user-defined INDEX exchange
-  # }
-
   # this is a mapping from [CSI Exchange, CSI Child Exchange] to exchange label as defined in ExchangesImporter
   CSI_EXCHANGE_PAIR_TO_EXCHANGE_LABEL_MAP = {
     ["NYSE", nil] => "NYSE",
     ["AMEX", nil] => "NYSE-MKT",
     ["NYSE", "NYSE"] => "NYSE",
-    ["OTC", nil] => "???",
+    ["OTC", nil] => "OTC",
     ["AMEX", "AMEX"] => "NYSE-MKT",
     ["OTC", "OTC Markets Pink Sheets"] => "OTC-PINK",
     ["OTC", "OTC Markets QX"] => "OTC-QX",
@@ -87,90 +79,75 @@ class CsiDataImporter
   def import_amex
     log "Importing CSI Data symbols for AMEX."
     csi_securities = csi_client.amex
-    composite_exchange = Exchange.us_composite
-    expected_constituent_exchanges = Exchange.amex.to_a
     default_exchange = Exchange.catch_all_stock
-    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+    import_securities(csi_securities, default_exchange)
   end
 
   def import_nyse
     log "Importing CSI Data symbols for NYSE."
     csi_securities = csi_client.nyse
-    composite_exchange = Exchange.us_composite
-    expected_constituent_exchanges = Exchange.nyse.to_a
     default_exchange = Exchange.catch_all_stock
-    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+    import_securities(csi_securities, default_exchange)
   end
 
   def import_nasdaq
     log "Importing CSI Data symbols for Nasdaq + OTC."
     csi_securities = csi_client.nasdaq_otc
-    composite_exchange = Exchange.us_composite
-    expected_constituent_exchanges = Exchange.nasdaq.to_a + Exchange.otc.to_a + Exchange.otc_markets.to_a + Exchange.otc_bulletin_board.to_a
     default_exchange = Exchange.catch_all_stock
-    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+    import_securities(csi_securities, default_exchange)
   end
 
   def import_etfs
     log "Importing CSI Data symbols for ETFs."
     csi_securities = csi_client.etfs
-    composite_exchange = Exchange.us_composite
-    expected_constituent_exchanges = Exchange.cboe.to_a + Exchange.nyse.to_a + Exchange.amex.to_a + Exchange.nasdaq.to_a
     default_exchange = Exchange.catch_all_etp
-    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+    import_securities(csi_securities, default_exchange)
   end
 
   def import_etns
     log "Importing CSI Data symbols for ETNs."
     csi_securities = csi_client.etns
-    composite_exchange = Exchange.us_composite
-    expected_constituent_exchanges = Exchange.cboe.to_a + Exchange.nyse.to_a + Exchange.amex.to_a + Exchange.nasdaq.to_a
     default_exchange = Exchange.catch_all_etp
-    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+    import_securities(csi_securities, default_exchange)
   end
 
   def import_mutual_funds
     log "Importing CSI Data symbols for Mutual Funds."
     csi_securities = csi_client.mutual_funds
-    composite_exchange = Exchange.us_composite
-    expected_constituent_exchanges = Exchange.nyse.to_a + Exchange.amex.to_a + Exchange.nasdaq.to_a + Exchange.cboe.to_a
     default_exchange = Exchange.catch_all_mutual
-    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+    import_securities(csi_securities, default_exchange)
   end
 
   def import_us_stock_indices
     log "Importing CSI Data symbols for US Stock Indices."
     csi_securities = csi_client.us_stock_indices
-    composite_exchange = Exchange.us_composite
-    expected_constituent_exchanges = Exchange.nyse.to_a + Exchange.amex.to_a + Exchange.nasdaq.to_a + Exchange.cboe.to_a
-    default_exchange = Exchange.catch_all_index
-    import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
+    default_exchange = Exchange.indices
+    import_securities(csi_securities, default_exchange)
   end
 
-  def lookup_exchanges(csi_exchange_label)
-    @exchange_memo[label] ||= Exchange.all(label: label)
-  end
-
-  def import_securities(csi_securities, composite_exchange, expected_constituent_exchanges, default_exchange)
-    all_exchanges = ([composite_exchange] + expected_constituent_exchanges + [default_exchange]).flatten.compact
+  def import_securities(csi_securities, default_exchange)
     log("Importing #{csi_securities.count} securities from CSI.")
     csi_securities.each do |csi_security|
-      import_security(csi_security, composite_exchange, expected_constituent_exchanges, default_exchange, all_exchanges)
+      import_security(csi_security, default_exchange)
     end
   end
 
-  # expected_constituent_exchanges is an array of constituent exchanges that make up, either in part or in whole, the given composite_exchange
-  # default_exchange is not a composite exchange
-  def import_security(csi_security, composite_exchange, expected_constituent_exchanges, default_exchange, all_exchanges = nil)
-    exchanges = all_exchanges || ([composite_exchange] + expected_constituent_exchanges + [default_exchange]).flatten.compact
+  def lookup_exchange(csi_security)
+    csi_exchange_pair = [csi_security.exchange, csi_security.child_exchange]
+    exchange_label = CSI_EXCHANGE_PAIR_TO_EXCHANGE_LABEL_MAP[ csi_exchange_pair ]
+    @exchange_memo[exchange_label] ||= Exchange.first(label: exchange_label)
+  end
 
-    # search for security in any of the exchanges found in (1)
-    securities = Security.where(exchange_id: exchanges.map(&:id), symbol: csi_security.symbol).to_a
+  # default_exchange is not a composite exchange
+  def import_security(csi_security, default_exchange)
+    exchange = lookup_exchange(csi_security) || default_exchange
+
+    securities = Security.association_join(:instruments).where(:instruments__exchange_id: exchange.id, symbol: csi_security.symbol).to_a
 
     case securities.count
-    when 0                                  # if no securities found, create the security in default_exchange
-      log("Creating #{csi_security.symbol} in #{default_exchange.label}")
-      create_security(csi_security, default_exchange)
+    when 0                                  # if no securities found, create the security
+      log("Creating #{csi_security.symbol} in #{exchange.label}")
+      create_security(csi_security, exchange)
     when 1                                  # if one security found, update it
       security = securities.first
       log("Updating #{security.symbol} (id=#{security.id})")
