@@ -6,8 +6,8 @@ Sequel::Model.raise_on_save_failure = false
 POSTGRES_BIGINT_MAX = 2**63-1
 
 class Exchange < Sequel::Model
-  one_to_many :instruments
-  many_to_many :securities, join_table: :instruments
+  one_to_many :listed_securities
+  many_to_many :securities, join_table: :listed_securities
 
   many_to_one :composite_exchange, class: self
   one_to_many :constituent_exchanges, key: :composite_exchange_id, class: self
@@ -117,14 +117,14 @@ class SecurityType < Sequel::Model
   end
 end
 
-class Instrument < Sequel::Model
+class ListedSecurity < Sequel::Model
   many_to_one :exchange
   many_to_one :security
 end
 
 class Security < Sequel::Model
-  one_to_many :instruments
-  many_to_many :exchanges, join_table: :instruments
+  one_to_many :listed_securities
+  many_to_many :exchanges, join_table: :listed_securities
 
   one_to_many :eod_bars
   one_to_many :corporate_actions
@@ -143,15 +143,15 @@ class Security < Sequel::Model
   # CBOE - Chicago Board Options Exchange
   def self.cboe
     qualify.
-      join(:instruments, :security_id => :id).
-      join(:exchanges, :id => :instruments__exchange_id).
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
       where(:exchanges__label => "CBOE")
   end
 
   def self.nyse_mkt
     qualify.
-      join(:instruments, :security_id => :id).
-      join(:exchanges, :id => :instruments__exchange_id).
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
       where(:exchanges__label => "NYSE-MKT")
   end
 
@@ -162,36 +162,36 @@ class Security < Sequel::Model
     # - The NASDAQ Global Market (formerly the NASDAQ National Market) (bloomberg: UQ)
     # - The NASDAQ Capital Market (formerly the NASDAQ SmallCap Market) (bloomberg: UR)
     qualify.
-      join(:instruments, :security_id => :id).
-      join(:exchanges, :id => :instruments__exchange_id).
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
       where(:exchanges__label => ["NASDAQ-CM", "NASDAQ-GM", "NASDAQ-GSM"])
   end
 
   def self.nyse
     qualify.
-      join(:instruments, :security_id => :id).
-      join(:exchanges, :id => :instruments__exchange_id).
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
       where(:exchanges__label => "NYSE")
   end
 
   def self.us_stock_exchanges
     qualify.
-      join(:instruments, :security_id => :id).
-      join(:exchanges, :id => :instruments__exchange_id).
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
       where(:exchanges__label => Exchange.us_stock_exchanges.map(&:label))
   end
 
   def self.us_exchanges
     qualify.
-      join(:instruments, :security_id => :id).
-      join(:exchanges, :id => :instruments__exchange_id).
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
       where(:exchanges__label => Exchange.us_exchanges.map(&:label))
   end
 
   def self.indices
     qualify.
-      join(:instruments, :security_id => :id).
-      join(:exchanges, :id => :instruments__exchange_id).
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
       where(:exchanges__label => "INDEX")
   end
 end

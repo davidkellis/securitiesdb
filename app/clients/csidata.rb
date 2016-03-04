@@ -32,7 +32,8 @@ module CsiData
       etf: "http://www.csidata.com/factsheets.php?type=stock&format=csv&isetf=1",
       etn: "http://www.csidata.com/factsheets.php?type=stock&format=csv&isetn=1",
       mutual_fund: "http://www.csidata.com/factsheets.php?type=stock&format=csv&exchangeid=85",
-      us_stock_indices: "http://www.csidata.com/factsheets.php?type=stock&format=csv&exchangeid=81"
+      us_stock_indices: "http://www.csidata.com/factsheets.php?type=stock&format=csv&exchangeid=81",
+      foreign_stock_indices: "http://www.csidata.com/factsheets.php?type=stock&format=csv&exchangeid=86"
     }
 
     SYMBOL_LISTING_HEADER = "CsiNumber,Symbol,Name,Exchange,IsActive,StartDate,EndDate,Sector,Industry,ConversionFactor,SwitchCfDate,PreSwitchCf,LastVolume,Type,ChildExchange,Currency"
@@ -67,6 +68,14 @@ module CsiData
 
     def us_stock_indices
       get_securities_of_type(:us_stock_indices)
+    end
+
+    def foreign_stock_indices
+      get_securities_of_type(:foreign_stock_indices)
+    end
+
+    def all_indices
+      us_stock_indices + foreign_stock_indices
     end
 
     # all stocks

@@ -142,7 +142,12 @@ class CsiDataImporter
   def import_security(csi_security, default_exchange)
     exchange = lookup_exchange(csi_security) || default_exchange
 
-    securities = Security.association_join(:instruments).where(:instruments__exchange_id: exchange.id, symbol: csi_security.symbol).to_a
+    securities = Security.
+                   association_join(:listed_securities).
+                   where(
+                     :listed_securities__exchange_id: exchange.id,
+                     :listed_securities__symbol: csi_security.symbol
+                   ).to_a
 
     case securities.count
     when 0                                  # if no securities found, create the security
@@ -256,14 +261,14 @@ class CsiDataImporter
   end
 
   def find_or_create_sector(sector_name)
-    if sector_name
-      Sector.first(name: sector_name) || Sector.create(name: sector_name) unless sector_name.empty?
+    if sector_name && !sector_name.empty?
+      Sector.first(name: sector_name) || Sector.create(name: sector_name)
     end
   end
 
   def find_or_create_industry(industry_name)
-    if industry_name
-      Industry.first(name: industry_name) or Industry.create(name: industry_name) unless industry_name.empty?
+    if industry_name && !industry_name.empty?
+      Industry.first(name: industry_name) || Industry.create(name: industry_name)
     end
   end
 
