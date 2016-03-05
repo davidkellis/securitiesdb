@@ -138,41 +138,59 @@ class CsiDataImporter
     @exchange_memo[exchange_label] ||= Exchange.first(label: exchange_label)
   end
 
-  # default_exchange is not a composite exchange
-  def import_security(csi_security, default_exchange)
-    exchange = lookup_exchange(csi_security) || default_exchange
+  # active_date is a yyyymmdd integer representation of a date within the active trading window of the security listing on the given exchange
+  def import_security(csi_security, active_date)
+    # 1. lookup exchange
+    exchange = lookup_exchange(csi_security)
 
-    securities = Security.
-                   association_join(:listed_securities).
-                   where(
-                     :listed_securities__exchange_id: exchange.id,
-                     :listed_securities__symbol: csi_security.symbol
-                   ).to_a
+    if exchange
+      # 2. lookup security in <exchange> by given symbol and active date
+      listed_securities = ListedSecurity.
+                     where(
+                       exchange_id: exchange.id,
+                       symbol: csi_security.symbol
+                     ).
+                     where {
+                       (listing_start_date <= active_date) &
+                       ((listing_end_date >= active_date) | (listing_end_date =~ nil))
+                     }.to_a
+      # securities = Security.
+      #                association_join(:listed_securities).
+      #                where(
+      #                  listed_securities__exchange_id: exchange.id,
+      #                  listed_securities__symbol: csi_security.symbol
+      #                ).
+      #                where {
+      #                  (listing_start_date <= active_date) &
+      #                  (listing_end_date >= active_date)
+      #                }.to_a
 
-    case securities.count
-    when 0                                  # if no securities found, create the security
-      log("Creating #{csi_security.symbol} in #{exchange.label}")
-      create_security(csi_security, exchange)
-    when 1                                  # if one security found, update it
-      security = securities.first
-      log("Updating #{security.symbol} (id=#{security.id})")
-      update_security(security, csi_security)
-    else # > 1                              # if multiple securities found:
-      composite_security = securities.detect {|security| security.exchange == composite_exchange }
-      if composite_security                 #   if security is in composite exchange, update the composite security
-        log("Updating composite security #{composite_security.symbol} (id=#{composite_security.id})")
-        update_security(composite_security, csi_security)
-      else                                  #   otherwise, security is in constituent exchange, so identify the proper security
-        # we want to identify the security residing in the component exchange that is most preferred in the list of <expected_exchanges>, then update that security
-        constituent_exchange_to_rank = expected_constituent_exchanges.each_with_index.to_h
-        get_exchange_rank = ->(security) { constituent_exchange_to_rank[security.exchange] || 1_000_000_000 }
-        security_with_most_preferred_constituent_exchange = securities.min_by {|security| get_exchange_rank.(security) }
+      case listed_securities.count
+      when 0                                  # if no listed securities found, find or create for the underlying security and then create the listed security
+        log("Creating #{csi_security.symbol} in #{exchange.label}")
+        create_listed_security(csi_security, exchange)
+      when 1                                  # if one listed security found, update it
+        listed_security = listed_securities.first
+        log("Updating #{listed_security.symbol} (id=#{security.id})")
+        update_listed_security(listed_security, csi_security)
+      else                                    # if multiple listed securities found, we have a data problem
+        composite_security = securities.detect {|security| security.exchange == composite_exchange }
+        if composite_security                 #   if security is in composite exchange, update the composite security
+          log("Updating composite security #{composite_security.symbol} (id=#{composite_security.id})")
+          update_security(composite_security, csi_security)
+        else                                  #   otherwise, security is in constituent exchange, so identify the proper security
+          # we want to identify the security residing in the component exchange that is most preferred in the list of <expected_exchanges>, then update that security
+          constituent_exchange_to_rank = expected_constituent_exchanges.each_with_index.to_h
+          get_exchange_rank = ->(security) { constituent_exchange_to_rank[security.exchange] || 1_000_000_000 }
+          security_with_most_preferred_constituent_exchange = securities.min_by {|security| get_exchange_rank.(security) }
 
-        log("Updating component security #{security_with_most_preferred_constituent_exchange.symbol} (id=#{security_with_most_preferred_constituent_exchange.id}); #{security_with_most_preferred_constituent_exchange.inspect}")
-        update_security(security_with_most_preferred_constituent_exchange, csi_security)
+          log("Updating component security #{security_with_most_preferred_constituent_exchange.symbol} (id=#{security_with_most_preferred_constituent_exchange.id}); #{security_with_most_preferred_constituent_exchange.inspect}")
+          update_security(security_with_most_preferred_constituent_exchange, csi_security)
+        end
       end
     end
   end
+
 
   # CsiData::Security is defined as
   # Struct.new(
@@ -193,18 +211,42 @@ class CsiDataImporter
   #   :child_exchange,
   #   :currency
   # )
-  def create_security(csi_security, exchange)
-    sector = find_or_create_sector(csi_security.sector)
-    industry = find_or_create_industry(csi_security.industry)
-    Security.create(
-      csi_number: csi_security.csi_number.to_i,
-      symbol: csi_security.symbol,
-      name: csi_security.name,
-      start_date: convert_date(csi_security.start_date),
-      end_date: convert_date(csi_security.end_date),
+  def create_listed_security(csi_security, exchange)
+    security = find_security(csi_security.name, csi_security.type) || create_security(csi_security)
+
+    ListedSecurity.create(
       exchange: exchange,
+      security: security,
+      symbol: csi_security.symbol,
+      listing_start_date: convert_date(csi_security.start_date),
+      listing_end_date: convert_date(csi_security.end_date),
+      csi_number: csi_security.csi_number.to_i
+    )
+  end
+
+  def find_security(name, security_type_name)
+    security_names = Security.association_join(:security_type).where(security_type__name: security_type_name).select_map(:securities__name)
+    db = SimString::Database.load("#{security_type_name}_names.txt")
+    matches = db.search(name, 0.7)
+    case matches.count
+    when 0
+      nil
+    when 1
+      Security.first(name: matches.first)
+    else
+      # todo
+    end
+  end
+
+  def create_security(csi_security, exchange)
+    security_type = find_or_create_security_type(csi_security.type)
+    industry = find_or_create_industry(csi_security.industry)
+    sector = find_or_create_sector(csi_security.sector)
+    Security.create(
+      security_type: security_type,
+      industry: industry,
       sector: sector,
-      industry: industry
+      name: csi_security.name
     )
   end
 
@@ -257,6 +299,12 @@ class CsiDataImporter
   def convert_date(csi_date)
     if csi_date
       csi_date.gsub("-","").to_i unless csi_date.empty?
+    end
+  end
+
+  def find_or_create_security_type(security_type_name)
+    if security_type_name && !security_type_name.empty?
+      SecurityType.first(name: security_type_name) || SecurityType.create(name: security_type_name)
     end
   end
 

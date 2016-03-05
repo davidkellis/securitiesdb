@@ -12,8 +12,8 @@ Sequel.migration do
       Integer :market_close, null: true         # time is an integer of the form hhmmss; if nil, each security traded on exchange has its own close time
       Integer :trading_window_in_days, null: true  # if trading opens and closes on same day, then this is 1; otherwise, the trading window is the number of calendar days spanned by the open trading window (e.g. 2 if market closes on day following the market open); nil if each security has its own trading trading window
 
-      TrueClass :is_composite_exchange, null: false
-      foreign_key :composite_exchange_id, :exchanges, null: true
+      # TrueClass :is_composite_exchange, null: false
+      # foreign_key :composite_exchange_id, :exchanges, null: true
 
       index :id, unique: true
       index :label, unique: true
@@ -38,7 +38,18 @@ Sequel.migration do
     create_table :security_types do
       primary_key :id
       String :name, size: 255, null: false
-      String :classification, size: 255, null: false   # this is a broader classification than the security type itself; e.g. Commodity, Equity, Index, Currency, etc.
+      String :classification, size: 255, null: true   # this is a broader classification than the security type itself; e.g. Commodity, Equity, Index, Currency, etc.
+
+      index :id, unique: true
+      index :name, unique: true
+    end
+
+    create_table :securities do
+      primary_key :id
+      foreign_key :security_type_id, :security_types, null: true
+      foreign_key :industry_id, :industries, null: true
+      foreign_key :sector_id, :sectors, null: true
+      String :name, size: 255, null: false
 
       index :id, unique: true
       index :name, unique: true
@@ -52,8 +63,8 @@ Sequel.migration do
       Integer :listing_start_date, null: true
       Integer :listing_end_date, null: true
 
-      String :figi, size: 12, null: true              # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
-      String :composite_figi, size: 12, null: true    # global composite id - unique per security (but shared across exchanges within the same composite exchange)
+      # String :figi, size: 12, null: true              # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
+      # String :composite_figi, size: 12, null: true    # global composite id - unique per security (but shared across exchanges within the same composite exchange)
       Integer :csi_number, null: true                 # CSI Number (identifier from csidata.com)
 
       Integer :market_open, null: true              # time is an integer of the form hhmmss; if nil, this security is traded during the exchange's common open trading window
@@ -64,19 +75,6 @@ Sequel.migration do
       # index :figi, unique: true
       index :csi_number, unique: true
       index [:exchange_id, :symbol, :listing_start_date]
-    end
-
-    create_table :securities do
-      primary_key :id
-      foreign_key :security_type_id, :security_types, null: true
-      foreign_key :industry_id, :industries, null: true
-      foreign_key :sector_id, :sectors, null: true
-      String :name, size: 255, null: false
-
-      index :id, unique: true
-      index :name, unique: true
-      # index :figi, unique: true
-      # index :csi_number, unique: true
     end
 
     # An option is a 5-tuple (underlying security, expiration, strike, callOrPut, americanOrEuropean)

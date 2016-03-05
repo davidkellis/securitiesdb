@@ -72,25 +72,25 @@ class Exchange < Sequel::Model
     @indices ||= first(label: "INDEX")
   end
 
-  def self.catch_all_mutual
-    @catch_all_mutual ||= first(label: "MUTUAL", is_composite_exchange: false)
-  end
-
-  def self.catch_all_stock
-    @catch_all_stock ||= first(label: "STOCK", is_composite_exchange: false)
-  end
-
-  def self.catch_all_etp
-    @catch_all_stock ||= first(label: "ETP", is_composite_exchange: false)
-  end
-
-  def self.catch_all_option
-    @catch_all_stock ||= first(label: "OPTION", is_composite_exchange: false)
-  end
-
-  def self.catch_all_future
-    @catch_all_stock ||= first(label: "FUTURE", is_composite_exchange: false)
-  end
+  # def self.catch_all_mutual
+  #   @catch_all_mutual ||= first(label: "MUTUAL", is_composite_exchange: false)
+  # end
+  #
+  # def self.catch_all_stock
+  #   @catch_all_stock ||= first(label: "STOCK", is_composite_exchange: false)
+  # end
+  #
+  # def self.catch_all_etp
+  #   @catch_all_stock ||= first(label: "ETP", is_composite_exchange: false)
+  # end
+  #
+  # def self.catch_all_option
+  #   @catch_all_stock ||= first(label: "OPTION", is_composite_exchange: false)
+  # end
+  #
+  # def self.catch_all_future
+  #   @catch_all_stock ||= first(label: "FUTURE", is_composite_exchange: false)
+  # end
 end
 
 class Industry < Sequel::Model

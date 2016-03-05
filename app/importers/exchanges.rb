@@ -94,8 +94,8 @@ class ExchangesImporter
           currency: currency,
           market_open: market_open,
           market_close: market_close,
-          trading_window_in_days: trading_window_in_days,
-          is_composite_exchange: false
+          trading_window_in_days: trading_window_in_days
+          # is_composite_exchange: false
         )
       else
         Exchange.create(
@@ -105,8 +105,8 @@ class ExchangesImporter
           currency: currency,
           market_open: market_open,
           market_close: market_close,
-          trading_window_in_days: trading_window_in_days,
-          is_composite_exchange: false
+          trading_window_in_days: trading_window_in_days
+          # is_composite_exchange: false
         )
       end
     rescue => e
