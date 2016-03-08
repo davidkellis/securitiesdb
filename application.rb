@@ -35,6 +35,8 @@ class Application
       Database.connect(AppConfig.database.connection_string, database_logger)
 
       require_files
+
+      configure_company_name_database
     end
 
     def configure_root_logger
@@ -64,6 +66,7 @@ class Application
     end
 
     def require_files
+      require_relative 'app/company_name_database'
       require_relative 'app/data_model'
       require_relative 'app/date'
       require_relative 'app/stats'
@@ -95,6 +98,10 @@ class Application
       require_relative 'app/importers/quandl_us_treasury'
       require_relative 'app/importers/yahoo_eod'
       require_relative 'app/importers/yahoo_splits_and_dividends'
+    end
+
+    def configure_company_name_database
+      CompanyNameDatabase.configure(AppConfig.company_name_search_database_path)
     end
 
   end
