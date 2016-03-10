@@ -36,7 +36,7 @@ class Application
 
       require_files
 
-      configure_company_name_database
+      configure_security_name_database
     end
 
     def configure_root_logger
@@ -66,9 +66,9 @@ class Application
     end
 
     def require_files
-      require_relative 'app/company_name_database'
       require_relative 'app/data_model'
       require_relative 'app/date'
+      require_relative 'app/security_name_database'
       require_relative 'app/stats'
       require_relative 'app/time'
 
@@ -100,8 +100,8 @@ class Application
       require_relative 'app/importers/yahoo_splits_and_dividends'
     end
 
-    def configure_company_name_database
-      CompanyNameDatabase.configure(AppConfig.company_name_search_database_path)
+    def configure_security_name_database
+      SecurityNameDatabase.configure(AppConfig.company_name_search_database_path)
     end
 
   end

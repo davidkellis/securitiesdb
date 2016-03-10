@@ -1,5 +1,12 @@
-class CompanyNameDatabase
+require 'forwardable'
+require 'simstring_pure'
+
+class SecurityNameDatabase
   class << self
+    extend Forwardable
+
+    def_delegators :instance, :add, :save, :search, :ranked_search
+
     def instance
       @instance
     end
@@ -16,7 +23,7 @@ class CompanyNameDatabase
     else
       SimString::Database.new
     end
-    @matcher = SimString::StringMatcher.new(@db, SimString::Measures::CosineMeasure.new)
+    @matcher = SimString::StringMatcher.new(@db, SimString::CosineMeasure.new)
   end
 
   def add(company_name)

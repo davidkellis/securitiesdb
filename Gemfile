@@ -20,3 +20,4 @@ gem "watir-webdriver"
 gem "quandl"
 gem "simple-spreadsheet"    # for reading xls and xlsx files
 gem "rubyzip"
+gem "simstring_pure"
