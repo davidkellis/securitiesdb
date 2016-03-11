@@ -1,21 +1,11 @@
+require 'filutils'
 require 'forwardable'
+require 'singleton'
+
+require 'lru_redux'
 require 'simstring_pure'
 
 class SecurityNameDatabase
-  class << self
-    extend Forwardable
-
-    def_delegators :instance, :add, :save, :search, :ranked_search
-
-    def instance
-      @instance
-    end
-
-    def configure(file_path)
-      @instance = self.new(file_path)
-    end
-  end
-
   def initialize(file_path)
     @file_path = file_path
     @db = if File.exist?(@file_path)
@@ -31,7 +21,7 @@ class SecurityNameDatabase
   end
 
   def save
-    @db.save(file_path)
+    @db.save(@file_path)
   end
 
   def search(query_string, alpha)
@@ -40,5 +30,50 @@ class SecurityNameDatabase
 
   def ranked_search(query_string, alpha)
     @matcher.ranked_search(query_string, alpha)
+  end
+end
+
+class SecurityNameDatabaseFactory
+  class << self
+    extend Forwardable
+
+    def_delegators :instance, :get
+
+    def instance
+      @instance
+    end
+
+    def configure(data_dir)
+      @instance = self.new(data_dir)
+    end
+  end
+
+  def initialize(data_directory_path)
+    FileUtils.mkdir_p(data_directory_path)
+    @data_directory = data_directory_path
+  end
+
+  # database_name should be a lower case alphanumeric underscored or hypenated name, e.g. a file name like "company_names" or "option_identifiers";
+  def get(database_name)
+    path = File.join(@data_directory, "#{database_name}.db")
+    SecurityNameDatabase.new(path)
+  end
+end
+
+class SecurityNameDatabaseRegistry
+  include Singleton
+
+  class << self
+    extend Forwardable
+
+    def_delegators :instance, :get
+  end
+
+  def initialize
+    @databases = LruRedux::Cache.new(10)
+  end
+
+  def get(database_name)
+    @databases[database_name] ||= SecurityNameDatabaseFactory.get(database_name)
   end
 end

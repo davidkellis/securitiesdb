@@ -36,7 +36,7 @@ class Application
 
       require_files
 
-      configure_security_name_database
+      configure_security_name_database_factory
     end
 
     def configure_root_logger
@@ -100,8 +100,8 @@ class Application
       require_relative 'app/importers/yahoo_splits_and_dividends'
     end
 
-    def configure_security_name_database
-      SecurityNameDatabase.configure(AppConfig.company_name_search_database_path)
+    def configure_security_name_database_factory
+      SecurityNameDatabaseFactory.configure(AppConfig.company_name_search_database_dir)
     end
 
   end

@@ -61,6 +61,7 @@ GEM
     logging (2.0.0)
       little-plugger (~> 1.1)
       multi_json (~> 1.10)
+    lru_redux (1.1.0)
     memoist (0.14.0)
     mime-types (2.99)
     mini_portile2 (2.0.0)
@@ -118,6 +119,7 @@ GEM
       roo (~> 2.1)
       roo-google (~> 1.0)
       roo-xls (~> 1.0)
+    simstring_pure (1.0.0)
     slop (4.2.1)
     spoon (0.0.4)
       ffi
@@ -143,12 +145,14 @@ DEPENDENCIES
   jdbc-postgres
   json
   logging
+  lru_redux
   nokogiri
   quandl
   rubyzip
   sequel
   settingslogic
   simple-spreadsheet
+  simstring_pure
   slop
   watir-webdriver
 

@@ -226,7 +226,7 @@ class CsiDataImporter
 
   def find_security(name, security_type_name)
     security_names = Security.association_join(:security_type).where(security_type__name: security_type_name).select_map(:securities__name)
-    db = SimString::Database.load("#{security_type_name}_names.txt")
+    db = SecurityNameDatabaseRegistry.get(security_type_name)
     matches = db.search(name, 0.7)
     case matches.count
     when 0
