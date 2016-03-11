@@ -50,7 +50,7 @@ def main
     end
   end
 
-  importer = BsymExchangesImporter.new
+  importer = ExchangesImporter.new
   importer.import
 
   # if opts.bsym? || opts.all?

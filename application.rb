@@ -84,8 +84,8 @@ class Application
       require_relative 'app/domain/time_zone'
 
       require_relative 'app/importers/quandl_time_series_importer'
-      require_relative 'app/importers/bsym_exchanges'
-      require_relative 'app/importers/bsym_securities'
+      # require_relative 'app/importers/bsym_exchanges'
+      # require_relative 'app/importers/bsym_securities'
       require_relative 'app/importers/csidata'
       require_relative 'app/importers/exchanges'
       require_relative 'app/importers/quandl_bls'

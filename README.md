@@ -3,7 +3,7 @@ securitiesdb
 
 This project populates a local postgres database with security symbols, un-adjusted EOD data, splits, dividends, and fundamental data.
 
-- Symbols are sourced from Bloomberg Open Symbology. (see http://bsym.bloomberg.com/sym/)
+- Symbols are sourced from CSI Data. (see http://www.csidata.com/?page_id=10 ; stocks: http://www.csidata.com/factsheets.php?type=stock&format=html, indices: http://www.csidata.com/factsheets.php?type=stock&format=html&exchangeid=81, etc.)
 - EOD data, splits, and dividends are sourced from Quandl's $50/month EOD database. (see https://www.quandl.com/data/EOD/)
 - Fundamental data is sourced from Quandl's $150/quarter SF1 database. (see https://www.quandl.com/data/SF1/)
 - Employment, inflation and prices, pay and benefits, and productivity data are sourced from Quandl's free BLSE, BLSI, BLSB, and BLSP databases. (see https://www.quandl.com/data/BLSE, https://www.quandl.com/data/BLSI, https://www.quandl.com/data/BLSB, and https://www.quandl.com/data/BLSP)
@@ -15,7 +15,6 @@ This project populates a local postgres database with security symbols, un-adjus
 ## Setup
 
 Prerequisites:
-- Install Firefox (the Bsym library screen scrapes http://bsym.bloomberg.com/sym/ using the watir-webdriver gem + Firefox)
 - Install Postgres libraries so that step 2 can install the pg gem (this is only applicable if using MRI, as JRuby doesn't need the pg gem).
 
 
@@ -50,9 +49,9 @@ Prerequisites:
    ```
    script/import --all
    OR
-   script/import -b -c --quandl-eod --quandl-fundamentals
+   script/import -c --quandl-eod --quandl-fundamentals
    OR
-   script/import --bsym --csi --quandl-eod --quandl-fundamentals
+   script/import --csi --quandl-eod --quandl-fundamentals
    ```
 
    To import only exchanges:
