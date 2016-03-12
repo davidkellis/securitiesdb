@@ -1,4 +1,4 @@
-require 'filutils'
+require 'fileutils'
 require 'forwardable'
 require 'singleton'
 
@@ -7,6 +7,13 @@ require 'simstring_pure'
 require 'text'
 
 class SecurityNameDatabase
+  class << self
+    def phonetic_key(company_name)
+      words = company_name.gsub(/\s+/m, ' ').strip.split(" ")
+      words.map {|word| Text::Metaphone.double_metaphone(word).first }
+    end
+  end
+
   def initialize(file_path)
     @file_path = file_path
     @db = if File.exist?(@file_path)
@@ -34,8 +41,7 @@ class SecurityNameDatabase
   end
 
   def phonetic_key(company_name)
-    words = company_name.gsub(/\s+/m, ' ').strip.split(" ")
-    words.map {|word| Text::Metaphone.double_metaphone(word).first }
+    self.class.phonetic_key(company_name)
   end
 end
 
