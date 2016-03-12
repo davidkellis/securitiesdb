@@ -8,6 +8,7 @@ require 'text'
 
 class SecurityNameDatabase
   class << self
+    # uses Double Metaphone (and perhaps in the future Metaphone 3 - see https://github.com/OpenRefine/OpenRefine/blob/master/main/src/com/google/refine/clustering/binning/Metaphone3.java)
     def phonetic_key(company_name)
       words = company_name.gsub(/\s+/m, ' ').strip.split(" ")
       phonetic_words = words.map {|word| Text::Metaphone.double_metaphone(word).first }
