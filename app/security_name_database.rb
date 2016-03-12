@@ -4,6 +4,7 @@ require 'singleton'
 
 require 'lru_redux'
 require 'simstring_pure'
+require 'text'
 
 class SecurityNameDatabase
   def initialize(file_path)
@@ -17,7 +18,7 @@ class SecurityNameDatabase
   end
 
   def add(company_name)
-    @db.add(company_name)
+    @db.add(phonetic_key(company_name))
   end
 
   def save
@@ -25,11 +26,16 @@ class SecurityNameDatabase
   end
 
   def search(query_string, alpha)
-    @matcher.search(query_string, alpha)
+    @matcher.search(phonetic_key(query_string), alpha)
   end
 
   def ranked_search(query_string, alpha)
-    @matcher.ranked_search(query_string, alpha)
+    @matcher.ranked_search(phonetic_key(query_string), alpha)
+  end
+
+  def phonetic_key(company_name)
+    words = company_name.gsub(/\s+/m, ' ').strip.split(" ")
+    words.map {|word| Text::Metaphone.double_metaphone(word).first }
   end
 end
 
