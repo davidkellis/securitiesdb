@@ -10,7 +10,8 @@ class SecurityNameDatabase
   class << self
     def phonetic_key(company_name)
       words = company_name.gsub(/\s+/m, ' ').strip.split(" ")
-      words.map {|word| Text::Metaphone.double_metaphone(word).first }
+      phonetic_words = words.map {|word| Text::Metaphone.double_metaphone(word).first }
+      phonetic_words.join(" ")
     end
   end
 
@@ -19,7 +20,8 @@ class SecurityNameDatabase
     @db = if File.exist?(@file_path)
       SimString::Database.load(@file_path)
     else
-      SimString::Database.new
+      ngram_builder = SimString::NGramBuilder.new(3)
+      SimString::Database.new(ngram_builder)
     end
     @matcher = SimString::StringMatcher.new(@db, SimString::CosineMeasure.new)
   end
