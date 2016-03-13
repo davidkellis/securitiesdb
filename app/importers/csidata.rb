@@ -225,16 +225,27 @@ class CsiDataImporter
   end
 
   def find_security(name, security_type_name)
-    security_names = Security.association_join(:security_type).where(security_type__name: security_type_name).select_map(:securities__name)
+    # security_names = Security.association_join(:security_type).where(security_type__name: security_type_name).select_map(:securities__name)
     db = SecurityNameDatabaseRegistry.get(security_type_name)
-    matches = db.search(name, 0.7)
-    case matches.count
+    search_key = name.downcase
+    matches = db.ranked_search(search_key, 0.7)
+    securities = case matches.count
+    when 0
+      []
+    when 1
+      Security.association_join(:security_type).where(security_type__name: security_type_name, search_key: matches.first.value).to_a
+    else
+      matching_names = matches.map{|match| "#{match.value} - #{match.score}" }
+      log("Warning: Searching for ambiguous name. Search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}) is being mapped to #{matching_names.first.value}. The #{matches.count} matches were:\n#{matching_names.join("\n")}")
+      Security.association_join(:security_type).where(security_type__name: security_type_name, search_key: matches.first.value).to_a
+    end
+    case securities.count
     when 0
       nil
     when 1
-      Security.first(name: matches.first)
+      securities.first
     else
-      # todo
+      log("Warning: Multiple securities found for search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}).")
     end
   end
 

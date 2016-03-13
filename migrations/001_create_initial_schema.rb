@@ -50,7 +50,7 @@ Sequel.migration do
       foreign_key :industry_id, :industries, null: true
       foreign_key :sector_id, :sectors, null: true
       String :name, size: 255, null: false
-      String :phonetic_key, size: 255, null: false
+      String :search_key, size: 255, null: false
 
       index :id, unique: true
       index :name, unique: true

@@ -28,7 +28,7 @@ class SecurityNameDatabase
   end
 
   def add(company_name)
-    @db.add(phonetic_key(company_name))
+    @db.add(company_name)
   end
 
   def save
@@ -36,15 +36,11 @@ class SecurityNameDatabase
   end
 
   def search(query_string, alpha)
-    @matcher.search(phonetic_key(query_string), alpha)
+    @matcher.search(query_string, alpha)
   end
 
   def ranked_search(query_string, alpha)
-    @matcher.ranked_search(phonetic_key(query_string), alpha)
-  end
-
-  def phonetic_key(company_name)
-    self.class.phonetic_key(company_name)
+    @matcher.ranked_search(query_string, alpha)
   end
 end
 
