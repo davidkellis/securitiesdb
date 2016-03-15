@@ -6,6 +6,8 @@ require_relative "../clients/csidata"
 class CsiDataImporter
   UNKNOWN_INDUSTRY_NAME = "UNKNOWN"
   UNKNOWN_SECTOR_NAME = "UNKNOWN"
+  UNKNOWN_SECURITY_TYPE = "Unknown"
+  APPROXIMATE_SEARCH_THRESHOLD = 0.7
 
   # this is a mapping from [CSI Exchange, CSI Child Exchange] to exchange label as defined in ExchangesImporter
   CSI_EXCHANGE_PAIR_TO_EXCHANGE_LABEL_MAP = {
@@ -171,7 +173,7 @@ class CsiDataImporter
       case listed_securities.count
       when 0                                  # if no listed securities found, find or create for the underlying security and then create the listed security
         log("Creating #{csi_security.symbol} in #{exchange.label}")
-        create_listed_security(csi_security, exchange)
+        create_listed_security(csi_security, exchange, default_security_type)
       when 1                                  # if one listed security found, update it
         listed_security = listed_securities.first
         log("Updating #{listed_security.symbol} (id=#{security.id})")
@@ -214,8 +216,8 @@ class CsiDataImporter
   #   :child_exchange,
   #   :currency
   # )
-  def create_listed_security(csi_security, exchange)
-    security = find_security(csi_security.name, csi_security.type) || create_security(csi_security)
+  def create_listed_security(csi_security, exchange, default_security_type)
+    security = find_security(csi_security.name, lookup_security_type(csi_security, default_security_type)) || create_security(csi_security, default_security_type)
 
     ListedSecurity.create(
       exchange: exchange,
@@ -230,31 +232,41 @@ class CsiDataImporter
   def find_security(name, security_type_name)
     # security_names = Security.association_join(:security_type).where(security_type__name: security_type_name).select_map(:securities__name)
     db = SecurityNameDatabaseRegistry.get(security_type_name)
-    search_key = name.downcase
-    matches = db.ranked_search(search_key, 0.7)
+    search_key = extract_search_key_from_security_name(name)
+    matches = db.ranked_search(search_key, APPROXIMATE_SEARCH_THRESHOLD)
 
+    # search for securities by approximate matching against search_key
     securities = case matches.count
     when 0
       []
     when 1
       Security.association_join(:security_type).where(security_type__name: security_type_name, search_key: matches.first.value).to_a
     else
-      matching_names = matches.map{|match| "#{match.value} - #{match.score}" }
-      log("Warning: Searching for ambiguous name. Search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}) is being mapped to #{matching_names.first.value}. The #{matches.count} matches were:\n#{matching_names.join("\n")}")
+      matching_names = matches.map {|match| "#{match.value} - #{match.score}" }
+      log("Warning: Searching for ambiguous security name. Search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}) is being mapped to #{matching_names.first.value}. The #{matches.count} matches were:\n#{matching_names.join("\n")}")
       Security.association_join(:security_type).where(security_type__name: security_type_name, search_key: matches.first.value).to_a
     end
+
+    # figure out which of the matched securities is the closest name match
     case securities.count
     when 0
       nil
     when 1
       securities.first
     else
-      log("Warning: Multiple securities found for search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}).")
+      db = SecurityNameDatabase.new
+      security_name_to_security = securities.reduce({}) {|memo, security| memo[security.name.downcase] = security; memo }
+      securities.each {|security| db.add(security.name.downcase) }
+      matches = db.ranked_search(name, APPROXIMATE_SEARCH_THRESHOLD)
+      closest_matching_name = matches.first.value
+      closest_matching_security = security_name_to_security[closest_matching_name]
+      log("Warning: Multiple securities found for search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}). Closest match to \"#{name}\" is security id=#{closest_matching_security.id} name=#{closest_matching_security.name}")
+      closest_matching_security
     end
   end
 
-  def create_security(csi_security, exchange)
-    security_type = find_or_create_security_type(csi_security.type)
+  def create_security(csi_security, default_security_type)
+    security_type = find_or_create_security_type(lookup_security_type(csi_security, default_security_type))
     industry = find_or_create_industry(csi_security.industry)
     sector = find_or_create_sector(csi_security.sector)
     Security.create(
@@ -315,6 +327,18 @@ class CsiDataImporter
     if csi_date
       csi_date.gsub("-","").to_i unless csi_date.empty?
     end
+  end
+
+  def lookup_security_type(csi_security, default_security_type)
+    if csi_security.type.nil? || csi_security.type == UNKNOWN_SECURITY_TYPE
+      default_security_type
+    else
+      csi_security.type
+    end
+  end
+
+  def extract_search_key_from_security_name(security_name)
+    security_name.downcase
   end
 
   def find_or_create_security_type(security_type_name)

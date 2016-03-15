@@ -16,9 +16,9 @@ class SecurityNameDatabase
     end
   end
 
-  def initialize(file_path)
+  def initialize(file_path = nil)
     @file_path = file_path
-    @db = if File.exist?(@file_path)
+    @db = if @file_path && File.exist?(@file_path)
       SimString::Database.load(@file_path)
     else
       ngram_builder = SimString::NGramBuilder.new(3)
@@ -32,7 +32,7 @@ class SecurityNameDatabase
   end
 
   def save
-    @db.save(@file_path)
+    @db.save(@file_path) if @file_path
   end
 
   def search(query_string, alpha)
