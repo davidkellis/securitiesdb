@@ -4,8 +4,8 @@ require 'pp'
 require_relative "../clients/csidata"
 
 class CsiDataImporter
-  UNKNOWN_INDUSTRY_NAME = "UNKNOWN"
-  UNKNOWN_SECTOR_NAME = "UNKNOWN"
+  UNKNOWN_INDUSTRY_NAME = "Unknown"
+  UNKNOWN_SECTOR_NAME = "Unknown"
   UNKNOWN_SECURITY_TYPE = "Unknown"
   APPROXIMATE_SEARCH_THRESHOLD = 0.7
 
@@ -177,7 +177,7 @@ class CsiDataImporter
       when 1                                  # if one listed security found, update it
         listed_security = listed_securities.first
         log("Updating #{listed_security.symbol} (id=#{security.id})")
-        update_listed_security(listed_security, csi_security)
+        update_listed_security(listed_security, csi_security, default_security_type)
       else                                    # if multiple listed securities found, we have a data problem
         composite_security = securities.detect {|security| security.exchange == composite_exchange }
         if composite_security                 #   if security is in composite exchange, update the composite security
@@ -273,7 +273,8 @@ class CsiDataImporter
       security_type: security_type,
       industry: industry,
       sector: sector,
-      name: csi_security.name
+      name: csi_security.name,
+      search_key: extract_search_key_from_security_name(csi_security.name)
     )
   end
 
@@ -296,23 +297,43 @@ class CsiDataImporter
   #   :child_exchange,
   #   :currency
   # )
-  def update_security(existing_security, csi_security)
-    replacement_attributes = {}
-    replacement_attributes[:csi_number] = csi_security.csi_number if existing_security.csi_number != csi_security.csi_number
-    replacement_attributes[:symbol] = csi_security.symbol if existing_security.symbol != csi_security.symbol
-    replacement_attributes[:name] = csi_security.name if existing_security.name != csi_security.name
-    replacement_attributes[:start_date] = convert_date(csi_security.start_date) if existing_security.start_date != convert_date(csi_security.start_date)
-    replacement_attributes[:end_date] = convert_date(csi_security.end_date) if existing_security.end_date != convert_date(csi_security.end_date)
+  def update_listed_security(listed_security, csi_security, default_security_type)
+    security = listed_security.security
 
-    sector = find_or_create_sector(csi_security.sector || UNKNOWN_SECTOR_NAME)
-    replacement_attributes[:sector_id] = sector.id if existing_security.sector_id != sector.id
+    # update Security
+    replacement_attributes = {}
+
+    security_type = find_or_create_security_type(lookup_security_type(csi_security.type, default_security_type))
+    replacement_attributes[:security_type_id] = security_type.id if security.security_type_id != security_type.id
 
     industry = find_or_create_industry(csi_security.industry || UNKNOWN_INDUSTRY_NAME)
-    replacement_attributes[:industry_id] = industry.id if existing_security.industry_id != industry.id
+    replacement_attributes[:industry_id] = industry.id if security.industry_id != industry.id
 
-    existing_security.update(replacement_attributes) unless replacement_attributes.empty?
+    sector = find_or_create_sector(csi_security.sector || UNKNOWN_SECTOR_NAME)
+    replacement_attributes[:sector_id] = sector.id if security.sector_id != sector.id
 
-    existing_security
+    replacement_attributes[:name] = csi_security.name if security.name != csi_security.name
+    replacement_attributes[:search_key] = extract_search_key_from_security_name(csi_security.name) if security.name != csi_security.name
+
+    if !replacement_attributes.empty?
+      log("Updating security #{security.inspect} with attributes: #{replacement_attributes.inspect}")
+      security.update(replacement_attributes)
+    end
+
+
+    # update ListedSecurity
+    replacement_attributes = {}
+    replacement_attributes[:symbol] = csi_security.symbol if listed_security.symbol != csi_security.symbol
+    replacement_attributes[:listing_start_date] = convert_date(csi_security.start_date) if listed_security.listing_start_date != convert_date(csi_security.start_date)
+    replacement_attributes[:listing_end_date] = convert_date(csi_security.end_date) if listed_security.listing_end_date != convert_date(csi_security.end_date)
+    replacement_attributes[:csi_number] = csi_security.csi_number if listed_security.csi_number != csi_security.csi_number
+
+    if !replacement_attributes.empty?
+      log("Updating listed security #{listed_security.inspect} with attributes: #{replacement_attributes.inspect}")
+      listed_security.update(replacement_attributes)
+    end
+
+    listed_security
   rescue Sequel::ValidationFailed, Sequel::HookFailed => e
     log "Can't import #{csi_security.inspect}: #{e.message}"
   rescue => e
