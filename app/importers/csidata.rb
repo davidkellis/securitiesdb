@@ -1,4 +1,5 @@
 require 'date'
+require 'io/console'
 require 'pp'
 
 require_relative "../clients/csidata"
@@ -281,7 +282,7 @@ class CsiDataImporter
 
   def prompt_yes_no(prompt = "(Y/n): ")
     print prompt
-    yes_or_no = case STDIN.getc.strip.downcase
+    yes_or_no = case STDIN.getch.strip.downcase
     when "y", ""
       true
     else
