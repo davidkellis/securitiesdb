@@ -12,10 +12,10 @@ class ExchangesImporter
   end
 
   def import
-    import_exchanges()
+    import_exchanges
   end
 
-  def import_exchanges(pricing_sources)
+  def import_exchanges
     log "Creating exchanges."
 
     # NYSE
@@ -60,7 +60,7 @@ class ExchangesImporter
     create_or_update_exchange("ICE Futures Europe", "ICE-FUT-EUR", TimeZone::US_EASTERN_TIME, Currency::USD, nil, nil, nil)
     create_or_update_exchange("ICE Futures Canada", "ICE-FUT-CA", TimeZone::US_EASTERN_TIME, Currency::USD, nil, nil, nil)
     create_or_update_exchange("ICE Futures Singapore", "ICE-FUT-SG", TimeZone::US_EASTERN_TIME, Currency::USD, nil, nil, nil)
-    create_or_update_exchange("ICE Endex", "ICE-ENDEX", TimeZone::US_EASTERN_TIME, Currency::USD, nil, nil)
+    create_or_update_exchange("ICE Endex", "ICE-ENDEX", TimeZone::US_EASTERN_TIME, Currency::USD, nil, nil, nil)
 
     # CBOE
     create_or_update_exchange("Chicago Board Options Exchange", "CBOE", TimeZone::US_CENTRAL_TIME, Currency::USD, nil, nil, nil)

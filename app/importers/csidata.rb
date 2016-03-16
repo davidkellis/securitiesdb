@@ -68,6 +68,7 @@ class CsiDataImporter
 
   def initialize
     self.csi_client = CsiData::Client.new
+    @exchange_memo = {}
   end
 
   def log(msg)
@@ -82,6 +83,8 @@ class CsiDataImporter
     import_etns
     import_mutual_funds
     import_us_stock_indices
+
+    SecurityNameDatabaseRegistry.save_all
   end
 
   def import_amex
@@ -176,22 +179,23 @@ class CsiDataImporter
         create_listed_security(csi_security, exchange, default_security_type)
       when 1                                  # if one listed security found, update it
         listed_security = listed_securities.first
-        log("Updating #{listed_security.symbol} (id=#{security.id})")
+        log("Updating #{listed_security.symbol} (id=#{listed_security.id})")
         update_listed_security(listed_security, csi_security, default_security_type)
       else                                    # if multiple listed securities found, we have a data problem
-        composite_security = securities.detect {|security| security.exchange == composite_exchange }
-        if composite_security                 #   if security is in composite exchange, update the composite security
-          log("Updating composite security #{composite_security.symbol} (id=#{composite_security.id})")
-          update_security(composite_security, csi_security)
-        else                                  #   otherwise, security is in constituent exchange, so identify the proper security
-          # we want to identify the security residing in the component exchange that is most preferred in the list of <expected_exchanges>, then update that security
-          constituent_exchange_to_rank = expected_constituent_exchanges.each_with_index.to_h
-          get_exchange_rank = ->(security) { constituent_exchange_to_rank[security.exchange] || 1_000_000_000 }
-          security_with_most_preferred_constituent_exchange = securities.min_by {|security| get_exchange_rank.(security) }
-
-          log("Updating component security #{security_with_most_preferred_constituent_exchange.symbol} (id=#{security_with_most_preferred_constituent_exchange.id}); #{security_with_most_preferred_constituent_exchange.inspect}")
-          update_security(security_with_most_preferred_constituent_exchange, csi_security)
-        end
+        log("Error: There are multiple listed securities with symbol \"#{csi_security.symbol}\"")
+        # composite_security = securities.detect {|security| security.exchange == composite_exchange }
+        # if composite_security                 #   if security is in composite exchange, update the composite security
+        #   log("Updating composite security #{composite_security.symbol} (id=#{composite_security.id})")
+        #   update_security(composite_security, csi_security)
+        # else                                  #   otherwise, security is in constituent exchange, so identify the proper security
+        #   # we want to identify the security residing in the component exchange that is most preferred in the list of <expected_exchanges>, then update that security
+        #   constituent_exchange_to_rank = expected_constituent_exchanges.each_with_index.to_h
+        #   get_exchange_rank = ->(security) { constituent_exchange_to_rank[security.exchange] || 1_000_000_000 }
+        #   security_with_most_preferred_constituent_exchange = securities.min_by {|security| get_exchange_rank.(security) }
+        #
+        #   log("Updating component security #{security_with_most_preferred_constituent_exchange.symbol} (id=#{security_with_most_preferred_constituent_exchange.id}); #{security_with_most_preferred_constituent_exchange.inspect}")
+        #   update_security(security_with_most_preferred_constituent_exchange, csi_security)
+        # end
       end
     end
   end
@@ -238,13 +242,19 @@ class CsiDataImporter
     # search for securities by approximate matching against search_key
     securities = case matches.count
     when 0
-      []
+      Security.association_join(:security_type).where(security_type__name: security_type_name, securities__name: name).to_a
     when 1
-      Security.association_join(:security_type).where(security_type__name: security_type_name, search_key: matches.first.value).to_a
+      Security.association_join(:security_type).where({security_type__name: security_type_name}, Sequel.or(securities__name: name, search_key: matches.first.value)).to_a
     else
       matching_names = matches.map {|match| "#{match.value} - #{match.score}" }
-      log("Warning: Searching for ambiguous security name. Search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}) is being mapped to #{matching_names.first.value}. The #{matches.count} matches were:\n#{matching_names.join("\n")}")
-      Security.association_join(:security_type).where(security_type__name: security_type_name, search_key: matches.first.value).to_a
+      best_match_search_key = matches.first.value
+      if is_match_correct?("Is \"#{best_match_search_key}\" a match for the search phrase \"#{search_key}\"? Score=#{matches.first.score} (Y/n) ")
+        log("Warning: Searching for ambiguous security name. Search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}) is being mapped to #{matching_names.first}. The #{matches.count} matches were:\n#{matching_names.join("\n")}")
+        Security.association_join(:security_type).where({security_type__name: security_type_name}, Sequel.or(securities__name: name, search_key: best_match_search_key)).to_a
+      else
+        log("Warning: Searching for ambiguous security name. Search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}) is NOT being mapped to #{matching_names.first}. The #{matches.count} matches were:\n#{matching_names.join("\n")}")
+        []
+      end
     end
 
     # figure out which of the matched securities is the closest name match
@@ -265,17 +275,38 @@ class CsiDataImporter
     end
   end
 
+  def is_match_correct?(prompt = "Is match correct? (Y/n): ")
+    prompt_yes_no(prompt)
+  end
+
+  def prompt_yes_no(prompt = "(Y/n): ")
+    print prompt
+    yes_or_no = case STDIN.getc.strip.downcase
+    when "y", ""
+      true
+    else
+      false
+    end
+  end
+
   def create_security(csi_security, default_security_type)
-    security_type = find_or_create_security_type(lookup_security_type(csi_security, default_security_type))
+    security_type_name = lookup_security_type(csi_security, default_security_type)
+    security_type = find_or_create_security_type(security_type_name)
     industry = find_or_create_industry(csi_security.industry)
     sector = find_or_create_sector(csi_security.sector)
-    Security.create(
+    security = Security.create(
       security_type: security_type,
       industry: industry,
       sector: sector,
       name: csi_security.name,
       search_key: extract_search_key_from_security_name(csi_security.name)
     )
+
+    db = SecurityNameDatabaseRegistry.get(security_type_name)
+    search_key = extract_search_key_from_security_name(csi_security.name)
+    db.add(search_key)
+
+    security
   end
 
   # CsiData::Security is defined as
@@ -303,7 +334,7 @@ class CsiDataImporter
     # update Security
     replacement_attributes = {}
 
-    security_type = find_or_create_security_type(lookup_security_type(csi_security.type, default_security_type))
+    security_type = find_or_create_security_type(lookup_security_type(csi_security, default_security_type))
     replacement_attributes[:security_type_id] = security_type.id if security.security_type_id != security_type.id
 
     industry = find_or_create_industry(csi_security.industry || UNKNOWN_INDUSTRY_NAME)

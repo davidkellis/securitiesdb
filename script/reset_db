@@ -2,4 +2,4 @@
 
 MYDIR="$(dirname "$(which "$0")")"
 
-($MYDIR/drop_db 2> /dev/null) && $MYDIR/setup_db
+($MYDIR/drop_db 2> /dev/null) && $MYDIR/delete_security_name_dbs && $MYDIR/setup_db

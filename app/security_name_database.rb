@@ -77,14 +77,19 @@ class SecurityNameDatabaseRegistry
   class << self
     extend Forwardable
 
-    def_delegators :instance, :get
+    def_delegators :instance, :get, :save_all
   end
 
   def initialize
-    @databases = LruRedux::Cache.new(10)
+    # @databases = LruRedux::Cache.new(10, ->(db){ db.save })   # second argument is an item eviction callback - we want to save the DB immediately before it is evicted from the LRU cache
+    @databases = {}
   end
 
   def get(database_name)
     @databases[database_name] ||= SecurityNameDatabaseFactory.get(database_name)
+  end
+
+  def save_all
+    @databases.each {|db_name, db| db.save }
   end
 end
