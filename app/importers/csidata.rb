@@ -89,49 +89,49 @@ class CsiDataImporter
   end
 
   def import_amex
-    log "Importing CSI Data symbols for AMEX."
+    log "\nImporting CSI Data symbols for AMEX."
     csi_securities = csi_client.amex
     import_securities(csi_securities, EquitySecurityType, today)
   end
 
   def import_nyse
-    log "Importing CSI Data symbols for NYSE."
+    log "\nImporting CSI Data symbols for NYSE."
     csi_securities = csi_client.nyse
     import_securities(csi_securities, EquitySecurityType, today)
   end
 
   def import_nasdaq
-    log "Importing CSI Data symbols for Nasdaq + OTC."
+    log "\nImporting CSI Data symbols for Nasdaq + OTC."
     csi_securities = csi_client.nasdaq_otc
     import_securities(csi_securities, EquitySecurityType, today)
   end
 
   def import_etfs
-    log "Importing CSI Data symbols for ETFs."
+    log "\nImporting CSI Data symbols for ETFs."
     csi_securities = csi_client.etfs
     import_securities(csi_securities, ETFSecurityType, today)
   end
 
   def import_etns
-    log "Importing CSI Data symbols for ETNs."
+    log "\nImporting CSI Data symbols for ETNs."
     csi_securities = csi_client.etns
     import_securities(csi_securities, ETNSecurityType, today)
   end
 
   def import_mutual_funds
-    log "Importing CSI Data symbols for Mutual Funds."
+    log "\nImporting CSI Data symbols for Mutual Funds."
     csi_securities = csi_client.mutual_funds
     import_securities(csi_securities, MutualFundSecurityType, today)
   end
 
   def import_us_stock_indices
-    log "Importing CSI Data symbols for US Stock Indices."
+    log "\nImporting CSI Data symbols for US Stock Indices."
     csi_securities = csi_client.us_stock_indices
     import_securities(csi_securities, IndexSecurityType, today)
   end
 
   def import_securities(csi_securities, default_security_type, active_date)
-    log("Importing #{csi_securities.count} securities from CSI.")
+    log("\nImporting #{csi_securities.count} securities from CSI.")
     csi_securities.each do |csi_security|
       import_security(csi_security, default_security_type, active_date)
     end
