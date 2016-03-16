@@ -249,7 +249,9 @@ class CsiDataImporter
     else
       matching_names = matches.map {|match| "#{match.value} - #{match.score}" }
       best_match_search_key = matches.first.value
-      if is_match_correct?("Is \"#{best_match_search_key}\" a match for the search phrase \"#{search_key}\"? Score=#{matches.first.score} (Y/n) ")
+      search_key_best_match_score = matches.first.score
+      if search_key_best_match_score == 1 ||
+          is_match_correct?("Is \"#{best_match_search_key}\" a match for the search phrase \"#{search_key}\"? Score=#{matches.first.score} (Y/n) ")
         log("Warning: Searching for ambiguous security name. Search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}) is being mapped to #{matching_names.first}. The #{matches.count} matches were:\n#{matching_names.join("\n")}")
         Security.association_join(:security_type).where({security_type__name: security_type_name}, Sequel.or(securities__name: name, search_key: best_match_search_key)).to_a
       else
