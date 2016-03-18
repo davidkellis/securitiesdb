@@ -3,11 +3,11 @@ source "https://rubygems.org"
 gem "sequel"
 
 # for ruby 2.2.3
-# gem "pg"
-# gem "sequel_pg"
+gem "pg"
+gem "sequel_pg"
 
 # for JRuby
-gem "jdbc-postgres"
+# gem "jdbc-postgres"
 
 gem "settingslogic"
 gem "logging"

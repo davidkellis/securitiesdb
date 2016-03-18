@@ -70,6 +70,7 @@ class CsiDataImporter
   def initialize
     self.csi_client = CsiData::Client.new
     @exchange_memo = {}
+    @similarity_measure = SimString::ComputeSimilarity.new(SimString::NGramBuilder.new(3), SimString::CosineMeasure.new)
   end
 
   def log(msg)
@@ -78,12 +79,12 @@ class CsiDataImporter
 
   def import
     import_amex
-    import_nyse
-    import_nasdaq
-    import_etfs
-    import_etns
-    import_mutual_funds
-    import_us_stock_indices
+    # import_nyse
+    # import_nasdaq
+    # import_etfs
+    # import_etns
+    # import_mutual_funds
+    # import_us_stock_indices
 
     SecurityNameDatabaseRegistry.save_all
   end
@@ -176,27 +177,20 @@ class CsiDataImporter
 
       case listed_securities.count
       when 0                                  # if no listed securities found, find or create for the underlying security and then create the listed security
-        log("Creating #{csi_security.symbol} in #{exchange.label}")
+        log("Creating #{csi_security.symbol} - #{csi_security.name} - in #{exchange.label}")
         create_listed_security(csi_security, exchange, default_security_type)
       when 1                                  # if one listed security found, update it
         listed_security = listed_securities.first
-        log("Updating #{listed_security.symbol} (id=#{listed_security.id})")
-        update_listed_security(listed_security, csi_security, default_security_type)
+        security = listed_security.security
+        if @similarity_measure.similarity(security.name.downcase, csi_security.name.downcase) >= APPROXIMATE_SEARCH_THRESHOLD
+          log("Updating #{listed_security.symbol} (id=#{listed_security.id}) - #{security.name}")
+          update_listed_security(listed_security, csi_security, default_security_type)
+        else
+          log("Creating #{csi_security.symbol} - #{csi_security.name} - in #{exchange.label}")
+          create_listed_security(csi_security, exchange, default_security_type)
+        end
       else                                    # if multiple listed securities found, we have a data problem
         log("Error: There are multiple listed securities with symbol \"#{csi_security.symbol}\"")
-        # composite_security = securities.detect {|security| security.exchange == composite_exchange }
-        # if composite_security                 #   if security is in composite exchange, update the composite security
-        #   log("Updating composite security #{composite_security.symbol} (id=#{composite_security.id})")
-        #   update_security(composite_security, csi_security)
-        # else                                  #   otherwise, security is in constituent exchange, so identify the proper security
-        #   # we want to identify the security residing in the component exchange that is most preferred in the list of <expected_exchanges>, then update that security
-        #   constituent_exchange_to_rank = expected_constituent_exchanges.each_with_index.to_h
-        #   get_exchange_rank = ->(security) { constituent_exchange_to_rank[security.exchange] || 1_000_000_000 }
-        #   security_with_most_preferred_constituent_exchange = securities.min_by {|security| get_exchange_rank.(security) }
-        #
-        #   log("Updating component security #{security_with_most_preferred_constituent_exchange.symbol} (id=#{security_with_most_preferred_constituent_exchange.id}); #{security_with_most_preferred_constituent_exchange.inspect}")
-        #   update_security(security_with_most_preferred_constituent_exchange, csi_security)
-        # end
       end
     end
   end
@@ -270,11 +264,22 @@ class CsiDataImporter
       db = SecurityNameDatabase.new
       security_name_to_security = securities.reduce({}) {|memo, security| memo[security.name.downcase] = security; memo }
       securities.each {|security| db.add(security.name.downcase) }
-      matches = db.ranked_search(name, APPROXIMATE_SEARCH_THRESHOLD)
-      closest_matching_name = matches.first.value
-      closest_matching_security = security_name_to_security[closest_matching_name]
-      log("Warning: Multiple securities found for search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}). Closest match to \"#{name}\" is security id=#{closest_matching_security.id} name=#{closest_matching_security.name}")
-      closest_matching_security
+      matches = db.ranked_search(name.downcase, APPROXIMATE_SEARCH_THRESHOLD)
+      case matches.count
+      when 0
+        closest_matching_security = prompt_multi_choice(securities, "Which of the following securities does \"#{name}\" identify?") {|security| security.name }
+        log("Warning: Multiple securities found for search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}). Closest match to \"#{name}\" is security id=#{closest_matching_security.id} name=#{closest_matching_security.name}")
+        closest_matching_security
+      when 1
+        closest_matching_name = matches.first.value
+        security_name_to_security[closest_matching_name]
+      else
+        match_names = matches.map(&:value)
+        closest_matching_name = prompt_multi_choice(match_names, "Which of the following securities does \"#{name}\" identify?")
+        closest_matching_security = security_name_to_security[closest_matching_name]
+        log("Warning: Multiple securities found for search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}). Closest match to \"#{name}\" is security id=#{closest_matching_security.id} name=#{closest_matching_security.name}")
+        closest_matching_security
+      end
     end
   end
 
@@ -289,6 +294,29 @@ class CsiDataImporter
       true
     else
       false
+    end
+  end
+
+  # Example:
+  # irb> prompt_multi_choice([5,7,9]) {|item| item * 10 }
+  # Enter the number corresponding to one of the following options:
+  # 1. 50
+  # 2. 70
+  # 3. 90
+  # 2
+  # => 7
+  def prompt_multi_choice(options, prompt = "Enter the number corresponding to one of the following options:", &option_text_extractor_fn)
+    option_text_extractor_fn ||= lambda {|option| option.to_s }
+    puts prompt
+    options.each_with_index {|option, index| puts "#{index + 1}. #{option_text_extractor_fn.call(option)}" }
+    selected_index = STDIN.gets.strip.to_i
+    case
+    when selected_index <= 0
+      nil
+    when selected_index <= options.count
+      options[selected_index - 1]
+    else
+      nil
     end
   end
 
@@ -350,7 +378,7 @@ class CsiDataImporter
     replacement_attributes[:search_key] = extract_search_key_from_security_name(csi_security.name) if security.name != csi_security.name
 
     if !replacement_attributes.empty?
-      log("Updating security #{security.inspect} with attributes: #{replacement_attributes.inspect}")
+      log("Updating security:\n#{security.inspect}\n=> #{replacement_attributes.inspect}")
       security.update(replacement_attributes)
     end
 
@@ -363,7 +391,7 @@ class CsiDataImporter
     replacement_attributes[:csi_number] = csi_security.csi_number if listed_security.csi_number != csi_security.csi_number
 
     if !replacement_attributes.empty?
-      log("Updating listed security #{listed_security.inspect} with attributes: #{replacement_attributes.inspect}")
+      log("Updating listed security:\n#{listed_security.inspect}\n=> #{replacement_attributes.inspect}")
       listed_security.update(replacement_attributes)
     end
 
