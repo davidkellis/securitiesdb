@@ -121,7 +121,7 @@ GEM
       roo (~> 2.1)
       roo-google (~> 1.0)
       roo-xls (~> 1.0)
-    simstring_pure (1.1.0)
+    simstring_pure (1.1.1)
     slop (4.2.1)
     spoon (0.0.4)
       ffi
