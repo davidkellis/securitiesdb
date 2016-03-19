@@ -79,8 +79,8 @@ class Application
       require_relative 'app/clients/yahoofinance'
 
       require_relative 'app/domain/currency'
+      require_relative 'app/domain/find_security'
       require_relative 'app/domain/lookup_fundamentals'
-      require_relative 'app/domain/lookup_security'
       require_relative 'app/domain/time_zone'
 
       require_relative 'app/importers/quandl_time_series_importer'

@@ -15,7 +15,7 @@ class QuandlFundamentalsImporter
   }
 
   def initialize(quandl_fundamentals_client)
-    @lookup_security = LookupSecurity.us_stocks
+    @find_security = FindSecurity.us_stocks
     @client = quandl_fundamentals_client
     @data_vendor = DataVendor.first(name: "Quandl")
   end
@@ -54,7 +54,7 @@ class QuandlFundamentalsImporter
       fundamental_dimension_name = DIMENSION_TRANSLATION_TABLE[quandl_dimension]
       if !indicator_values.empty?
         date_of_first_attribute_value = indicator_values.first.date
-        security = @lookup_security.run(ticker, date_of_first_attribute_value)    # identify the security that was actively trading under the ticker at that date
+        security = @find_security.run(ticker, date_of_first_attribute_value)    # identify the security that was actively trading under the ticker at that date
         if security
           fundamental_dataset = LookupFundamentals.lookup_fundamental_dataset(security, indicator, fundamental_dimension_name) ||
                                   create_fundamental_dataset(security, indicator, fundamental_dimension_name)

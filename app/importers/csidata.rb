@@ -164,16 +164,6 @@ class CsiDataImporter
                        (listing_start_date <= active_date) &
                        ((listing_end_date >= active_date) | (listing_end_date =~ nil))
                      }.to_a
-      # securities = Security.
-      #                association_join(:listed_securities).
-      #                where(
-      #                  listed_securities__exchange_id: exchange.id,
-      #                  listed_securities__symbol: csi_security.symbol
-      #                ).
-      #                where {
-      #                  (listing_start_date <= active_date) &
-      #                  (listing_end_date >= active_date)
-      #                }.to_a
 
       case listed_securities.count
       when 0                                  # if no listed securities found, find or create for the underlying security and then create the listed security

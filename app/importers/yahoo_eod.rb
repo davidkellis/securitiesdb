@@ -4,7 +4,7 @@ class YahooEodImporter
   DEFAULT_START_DATE = Date.parse("19500101")
 
   def initialize
-    @lookup_security = LookupSecurity.new(Exchange.us_composite, Exchange.us_stock_exchanges.to_a, nil)
+    @find_security = FindSecurity.new(Exchange.us_composite, Exchange.us_stock_exchanges.to_a, nil)
   end
 
   def import
