@@ -6,7 +6,7 @@ class FindSecurity
   end
 
   def self.us_indices
-    @us_indices ||= FindSecurity.new(Exchange.cboe.to_a)
+    @us_indices ||= FindSecurity.new(Exchange.indices.to_a)
   end
 
 
@@ -41,7 +41,6 @@ class FindSecurity
         when 1
           securities.first
         else
-          # todo: figure out which exchange is preferred, and then return the security in the most preferred exchange
           raise "Symbol #{symbol} is listed in multiple exchanges: #{securities_in_local_exchanges.map(&:exchange).map(&:label)}"
         end
       end

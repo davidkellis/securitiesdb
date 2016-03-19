@@ -9,8 +9,8 @@ module QuandlFundamentals
   IndicatorValue = Struct.new(:date, :value)
 
   class Client
-    ZIP_FILE_PATH = "./data/fundamentals_database_<DATE>.zip"
-    CSV_FILE_PATH = "./data/fundamentals_database_<DATE>.csv"
+    ZIP_FILE_PATH = "./data/quandl_fundamentals_database_<DATE>.zip"
+    CSV_FILE_PATH = "./data/quandl_fundamentals_database_<DATE>.csv"
     INDICATORS_URL = "http://www.sharadar.com/meta/indicators.txt"      # referenced at https://www.quandl.com/data/SF1/documentation/indicators
     INDICATOR_LISTING_HEADER = ["Indicator", "Title", "Available Dimensions", "Statement", "Description", "NA Value", "Units"]
     CSV_FIELD_COUNT = 3

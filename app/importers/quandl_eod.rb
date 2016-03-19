@@ -3,8 +3,6 @@ require 'zip'
 
 class QuandlEodImporter
   def initialize(quandl_eod_client)
-    @us_stock_exchanges = Exchange.us_stock_exchanges.to_a
-    @us_composite = Exchange.us_composite
     @client = quandl_eod_client
   end
 
@@ -22,7 +20,7 @@ class QuandlEodImporter
   def import_eod_bars_splits_and_dividends(all_eod_bars)
     all_eod_bars.each do |symbol, eod_bars|
       # eod_bars is an array of QuandlEod::EodBar objects; each has the following fields:
-      #   date,
+      #   date,   # this is an integer of the form yyyymmdd
       #   unadjusted_open,
       #   unadjusted_high,
       #   unadjusted_low,

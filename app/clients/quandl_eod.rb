@@ -22,8 +22,8 @@ module QuandlEod
   )
 
   class Client
-    ZIP_FILE_PATH = "./data/eod_database_<DATE>.zip"
-    CSV_FILE_PATH = "./data/eod_database_<DATE>.csv"
+    ZIP_FILE_PATH = "./data/quandl_eod_database_<DATE>.zip"
+    CSV_FILE_PATH = "./data/quandl_eod_database_<DATE>.csv"
     CSV_FIELD_COUNT = 14
     DATABASE_NAME = "EOD"
 

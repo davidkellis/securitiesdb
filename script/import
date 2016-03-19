@@ -13,12 +13,12 @@ def main
     o.bool '-e', '--exchanges', 'Import Bloomberg Open Symbology Exchanges'
     o.bool '--quandl-bls', "Import BLS time series from Quandl's BLS databases (see https://www.quandl.com/data/BLSE/ and https://www.quandl.com/data/BLSP/)."
     o.bool '--quandl-eod', "Import EOD prices, splits, and dividends for US traded stocks from Quandl's EOD database (see https://www.quandl.com/data/EOD/)."
-    o.string '--quandl-eod-database', "Quandl EOD full database snapshot file path. (e.g. ./data/eod_database_20151222.zip)"
+    o.string '--quandl-eod-database', "Quandl EOD full database snapshot file path. (e.g. ./data/quandl_eod_database_20151222.zip)"
     o.bool '--quandl-fed', "Import economic statistics from Quandl's FED database (see https://www.quandl.com/data/FED/)."
     o.bool '--quandl-fred', "Import economic statistics from Quandl's FRED database (see https://www.quandl.com/data/FRED/)."
     o.bool '--yahoo-eod', "Import EOD prices, splits, and dividends for stocks/ETFs/ETNs from Yahoo! Finance."
     o.bool '--quandl-fundamentals', "Import stock fundamentals for US traded stocks from Quandl's Core US Fundamentals database (see https://www.quandl.com/data/SF1/)."
-    o.string '--quandl-fundamentals-database', "Quandl Core US Fundamentals full database snapshot file path. (e.g. ./data/fundamentals_database_20151222.zip)"
+    o.string '--quandl-fundamentals-database', "Quandl Core US Fundamentals full database snapshot file path. (e.g. ./data/quandl_fundamentals_database_20151222.zip)"
     o.bool '--quandl-census', "Import data on the American people, places, and economy, from Quandl's USCENSUS database (see https://www.quandl.com/data/USCENSUS/)."
     o.bool '--quandl-treasury', "Import Treasury rates, yield curve rates, debt, tax revenues, etc., from Quandl's USCENSUS database (see https://www.quandl.com/data/USTREASURY/)."
     o.string '--config', 'Config file path'

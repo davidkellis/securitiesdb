@@ -60,13 +60,8 @@ class Exchange < Sequel::Model
 
   def self.us_exchanges
     us_stock_exchanges.to_a +
-      cboe.to_a +
-      [us_composite]
+      cboe.to_a
   end
-
-  # def self.us_composite
-  #   @us_composite ||= first(label: "US", is_composite_exchange: true)
-  # end
 
   def self.indices
     @indices ||= first(label: "INDEX")

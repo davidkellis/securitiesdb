@@ -1,4 +1,3 @@
-
 Sequel.migration do
   change do
 
