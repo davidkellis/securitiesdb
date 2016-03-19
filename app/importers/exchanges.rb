@@ -40,8 +40,8 @@ class ExchangesImporter
     # BATS
     create_or_update_exchange("BATS BZX", "BATS-BZX", TimeZone::US_EASTERN_TIME, Currency::USD, 93000, 160000, 1)
     create_or_update_exchange("BATS BYX", "BATS-BYX", TimeZone::US_EASTERN_TIME, Currency::USD, 93000, 160000, 1)
-    create_or_update_exchange("BATS EDGA", "BATS-EDGA", TimeZone::US_EASTERN_TIME, Currency::USD, 93000, 160000, 1)
-    create_or_update_exchange("BATS EDGX", "BATS-EDGX", TimeZone::US_EASTERN_TIME, Currency::USD, 93000, 160000, 1)
+    create_or_update_exchange("BATS EDGA", "BATS-EDGA", TimeZone::US_EASTERN_TIME, Currency::USD, 93000, 160000, 1)   # formerly Direct Edge EDGA
+    create_or_update_exchange("BATS EDGX", "BATS-EDGX", TimeZone::US_EASTERN_TIME, Currency::USD, 93000, 160000, 1)   # formerly Direct Edge EDGX
     create_or_update_exchange("BATS BZX Options", "BATS-EDGX-OPT", TimeZone::US_EASTERN_TIME, Currency::USD, 93000, 160000, 1)
     create_or_update_exchange("BATS EDGX Options", "BATS-EDGX-OPT", TimeZone::US_EASTERN_TIME, Currency::USD, 93000, 160000, 1)
     create_or_update_exchange("BATS Catch All", "BATS-CATCHALL", TimeZone::US_EASTERN_TIME, Currency::USD, 93000, 160000, 1)
