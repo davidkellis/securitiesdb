@@ -73,7 +73,6 @@ Sequel.migration do
 
       index :id, unique: true
       # index :figi, unique: true
-      index :csi_number, unique: true
       index [:exchange_id, :symbol, :listing_start_date]
     end
 
