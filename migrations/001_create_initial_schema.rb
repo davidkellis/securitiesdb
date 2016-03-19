@@ -52,7 +52,7 @@ Sequel.migration do
       String :search_key, size: 255, null: false
 
       index :id, unique: true
-      index :name, unique: true
+      index [:security_type_id, :name], unique: true
     end
 
     create_table :listed_securities do

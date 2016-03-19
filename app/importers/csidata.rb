@@ -79,60 +79,67 @@ class CsiDataImporter
 
   def import
     import_amex
-    # import_nyse
-    # import_nasdaq
-    # import_etfs
-    # import_etns
-    # import_mutual_funds
-    # import_us_stock_indices
+    import_nyse
+    import_nasdaq
+    import_etfs
+    import_etns
+    import_mutual_funds
+    import_us_stock_indices
 
     SecurityNameDatabaseRegistry.save_all
   end
 
   def import_amex
-    log "\nImporting CSI Data symbols for AMEX."
+    log "*" * 80
+    log "Importing CSI Data symbols for AMEX."
     csi_securities = csi_client.amex
     import_securities(csi_securities, EquitySecurityType, today)
   end
 
   def import_nyse
-    log "\nImporting CSI Data symbols for NYSE."
+    log "*" * 80
+    log "Importing CSI Data symbols for NYSE."
     csi_securities = csi_client.nyse
     import_securities(csi_securities, EquitySecurityType, today)
   end
 
   def import_nasdaq
-    log "\nImporting CSI Data symbols for Nasdaq + OTC."
+    log "*" * 80
+    log "Importing CSI Data symbols for Nasdaq + OTC."
     csi_securities = csi_client.nasdaq_otc
     import_securities(csi_securities, EquitySecurityType, today)
   end
 
   def import_etfs
-    log "\nImporting CSI Data symbols for ETFs."
+    log "*" * 80
+    log "Importing CSI Data symbols for ETFs."
     csi_securities = csi_client.etfs
     import_securities(csi_securities, ETFSecurityType, today)
   end
 
   def import_etns
-    log "\nImporting CSI Data symbols for ETNs."
+    log "*" * 80
+    log "Importing CSI Data symbols for ETNs."
     csi_securities = csi_client.etns
     import_securities(csi_securities, ETNSecurityType, today)
   end
 
   def import_mutual_funds
-    log "\nImporting CSI Data symbols for Mutual Funds."
+    log "*" * 80
+    log "Importing CSI Data symbols for Mutual Funds."
     csi_securities = csi_client.mutual_funds
     import_securities(csi_securities, MutualFundSecurityType, today)
   end
 
   def import_us_stock_indices
-    log "\nImporting CSI Data symbols for US Stock Indices."
+    log "*" * 80
+    log "Importing CSI Data symbols for US Stock Indices."
     csi_securities = csi_client.us_stock_indices
     import_securities(csi_securities, IndexSecurityType, today)
   end
 
   def import_securities(csi_securities, default_security_type, active_date)
-    log("\nImporting #{csi_securities.count} securities from CSI.")
+    log("Importing #{csi_securities.count} securities from CSI.")
     csi_securities.each do |csi_security|
       import_security(csi_security, default_security_type, active_date)
     end
@@ -206,7 +213,7 @@ class CsiDataImporter
   #   :currency
   # )
   def create_listed_security(csi_security, exchange, default_security_type)
-    security = find_security(csi_security.name, lookup_security_type(csi_security, default_security_type)) || create_security(csi_security, default_security_type)
+    security = find_security_exact(csi_security.name, lookup_security_type(csi_security, default_security_type)) || create_security(csi_security, default_security_type)
 
     ListedSecurity.create(
       exchange: exchange,
@@ -218,7 +225,13 @@ class CsiDataImporter
     )
   end
 
-  def find_security(name, security_type_name)
+  # performs an exact security search by name
+  def find_security_exact(name, security_type_name)
+    Security.association_join(:security_type).where(security_type__name: security_type_name, securities__name: name).first
+  end
+
+  # performs an approximate security search by name
+  def find_security_approximate(name, security_type_name)
     # security_names = Security.association_join(:security_type).where(security_type__name: security_type_name).select_map(:securities__name)
     db = SecurityNameDatabaseRegistry.get(security_type_name)
     search_key = extract_search_key_from_security_name(name)
