@@ -52,7 +52,7 @@ class QuandlEodImporter
 
   # eod_bars is an array of QuandlEod::EodBar objects
   def import_missing_eod_bars_splits_and_dividends(security, eod_bars)
-    log "Importing #{eod_bars.count} EOD bars from Quandl EOD database for symbol #{security.symbol}."
+    log "Importing #{eod_bars.count} EOD bars from Quandl EOD database for security \"#{security.name}\"."
 
     eod_bars.each do |eod_bar|
       EodBar.create(

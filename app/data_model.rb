@@ -23,11 +23,11 @@ class Exchange < Sequel::Model
   # - The NASDAQ Global Market (formerly the NASDAQ National Market) (bloomberg: UQ) - more exclusive than Capital Market, less exclusive than Global Select Market
   # - The NASDAQ Capital Market (formerly the NASDAQ SmallCap Market) (bloomberg: UR) - least exclusive Nasdaq Market
   def self.nasdaq
-    @nasdaq ||= where(label: ["NASDAQ-CM", "NASDAQ-GM", "NASDAQ-GSM"])
+    @nasdaq ||= where(label: ["NASDAQ-CM", "NASDAQ-GM", "NASDAQ-GSM", "NASDAQ-CATCHALL"])
   end
 
   def self.nyse
-    @nyse ||= where(label: "NYSE")          # NYSE
+    @nyse ||= where(label: ["NYSE", "NYSE-CATCHALL"])          # NYSE
   end
 
   def self.nyse_arca
@@ -43,7 +43,7 @@ class Exchange < Sequel::Model
   end
 
   def self.otc_markets
-    @otc_markets ||= where(label: ["OTC-QX", "OTC-QB"])
+    @otc_markets ||= where(label: ["OTC-QX", "OTC-QB", "OTC-CATCHALL"])
   end
 
   def self.pink_sheets

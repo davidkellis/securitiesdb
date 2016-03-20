@@ -51,7 +51,7 @@ module QuandlEod
     def all_eod_bars(&blk)
       if block_given?
         download_full_database
-        extract_csv_file_from_zipped_database
+        extract_csv_file_from_zipped_database unless File.exists?(csv_file_path)
         # delete_zipped_database
         enumerate_rowsets_in_csv(&blk)
         delete_extracted_csv_database

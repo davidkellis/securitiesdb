@@ -1,12 +1,18 @@
 require 'date'
 
 class FindSecurity
-  def self.us_stocks
-    @us_stocks ||= FindSecurity.new(Exchange.us_stock_exchanges.to_a)
-  end
+  class << self
+    def all_exchanges
+      @all_exchanges ||= FindSecurity.new(Exchange.all)
+    end
 
-  def self.us_indices
-    @us_indices ||= FindSecurity.new(Exchange.indices.to_a)
+    def us_stocks
+      @us_stocks ||= FindSecurity.new(Exchange.us_stock_exchanges.to_a)
+    end
+
+    def us_indices
+      @us_indices ||= FindSecurity.new(Exchange.indices.to_a)
+    end
   end
 
 
@@ -32,7 +38,7 @@ class FindSecurity
       when 0
         nil
       when 1
-        listed_securities.security.first
+        listed_securities.first.security
       else
         securities = listed_securities.map(&:security).uniq
         case securities.count
@@ -41,7 +47,8 @@ class FindSecurity
         when 1
           securities.first
         else
-          raise "Symbol #{symbol} is listed in multiple exchanges: #{securities_in_local_exchanges.map(&:exchange).map(&:label)}"
+          identified_securities = listed_securities.map {|listed_security| "listed_security_id=#{listed_security.id} symbol=#{listed_security.symbol} listing_start_date=#{listed_security.listing_start_date} listing_end_date=#{listed_security.listing_end_date} exchange=#{listed_security.exchange.label} security_id=#{listed_security.security.id} name=#{listed_security.security.name}" }
+          raise "Symbol #{symbol} identifies multiple securities:\n#{identified_securities.join("\n")}"
         end
       end
     end

@@ -213,7 +213,8 @@ class CsiDataImporter
   #   :currency
   # )
   def create_listed_security(csi_security, exchange, default_security_type)
-    security = find_security_exact(csi_security.name, lookup_security_type(csi_security, default_security_type)) || create_security(csi_security, default_security_type)
+    security = find_security_exact(csi_security.name, lookup_security_type(csi_security, default_security_type)) ||
+                 create_security(csi_security, default_security_type)
 
     ListedSecurity.create(
       exchange: exchange,
