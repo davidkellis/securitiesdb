@@ -5,6 +5,8 @@ require 'pp'
 require_relative "../clients/csidata"
 
 class CsiDataImporter
+  using DateExtensions
+
   UNKNOWN_INDUSTRY_NAME = "Unknown"
   UNKNOWN_SECTOR_NAME = "Unknown"
   UNKNOWN_SECURITY_TYPE = "Unknown"
@@ -93,55 +95,55 @@ class CsiDataImporter
     log "*" * 80
     log "Importing CSI Data symbols for AMEX."
     csi_securities = csi_client.amex
-    import_securities(csi_securities, EquitySecurityType, today)
+    import_securities(csi_securities, EquitySecurityType)
   end
 
   def import_nyse
     log "*" * 80
     log "Importing CSI Data symbols for NYSE."
     csi_securities = csi_client.nyse
-    import_securities(csi_securities, EquitySecurityType, today)
+    import_securities(csi_securities, EquitySecurityType)
   end
 
   def import_nasdaq
     log "*" * 80
     log "Importing CSI Data symbols for Nasdaq + OTC."
     csi_securities = csi_client.nasdaq_otc
-    import_securities(csi_securities, EquitySecurityType, today)
+    import_securities(csi_securities, EquitySecurityType)
   end
 
   def import_etfs
     log "*" * 80
     log "Importing CSI Data symbols for ETFs."
     csi_securities = csi_client.etfs
-    import_securities(csi_securities, ETFSecurityType, today)
+    import_securities(csi_securities, ETFSecurityType)
   end
 
   def import_etns
     log "*" * 80
     log "Importing CSI Data symbols for ETNs."
     csi_securities = csi_client.etns
-    import_securities(csi_securities, ETNSecurityType, today)
+    import_securities(csi_securities, ETNSecurityType)
   end
 
   def import_mutual_funds
     log "*" * 80
     log "Importing CSI Data symbols for Mutual Funds."
     csi_securities = csi_client.mutual_funds
-    import_securities(csi_securities, MutualFundSecurityType, today)
+    import_securities(csi_securities, MutualFundSecurityType)
   end
 
   def import_us_stock_indices
     log "*" * 80
     log "Importing CSI Data symbols for US Stock Indices."
     csi_securities = csi_client.us_stock_indices
-    import_securities(csi_securities, IndexSecurityType, today)
+    import_securities(csi_securities, IndexSecurityType)
   end
 
-  def import_securities(csi_securities, default_security_type, active_date)
+  def import_securities(csi_securities, default_security_type)
     log("Importing #{csi_securities.count} securities from CSI.")
     csi_securities.each do |csi_security|
-      import_security(csi_security, default_security_type, active_date)
+      import_security(csi_security, default_security_type)
     end
   end
 
@@ -151,14 +153,12 @@ class CsiDataImporter
     @exchange_memo[exchange_label] ||= Exchange.first(label: exchange_label)
   end
 
-  def today
-    Date.today.strftime("%Y%m%d").to_i
-  end
-
   # active_date is a yyyymmdd integer representation of a date within the active trading window of the security listing on the given exchange
-  def import_security(csi_security, default_security_type, active_date)
+  def import_security(csi_security, default_security_type)
     # 1. lookup exchange
     exchange = lookup_exchange(csi_security)
+
+    active_date = Date.parse(csi_security.start_date).to_datestamp
 
     if exchange
       # 2. lookup security in <exchange> by given symbol and active date
