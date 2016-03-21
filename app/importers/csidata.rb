@@ -183,7 +183,7 @@ class CsiDataImporter
           log("Updating #{listed_security.symbol} (id=#{listed_security.id}) - #{security.name}")
           update_listed_security(listed_security, csi_security, default_security_type)
         else
-          log("Creating #{csi_security.symbol} - #{csi_security.name} - in #{exchange.label}")
+          log("Creating #{csi_security.symbol} - #{csi_security.name} - in #{exchange.label}; ListedSecurity #{listed_security.to_hash} and Security #{security.to_hash} do not match CSI Security #{csi_security.inspect}")
           create_listed_security(csi_security, exchange, default_security_type)
         end
       else                                    # if multiple listed securities found, we have a data problem
@@ -217,8 +217,8 @@ class CsiDataImporter
                  create_security(csi_security, default_security_type)
 
     ListedSecurity.create(
-      exchange: exchange,
-      security: security,
+      exchange_id: exchange.id,
+      security_id: security.id,
       symbol: csi_security.symbol,
       listing_start_date: convert_date(csi_security.start_date),
       listing_end_date: convert_date(csi_security.end_date),
@@ -330,9 +330,9 @@ class CsiDataImporter
     industry = find_or_create_industry(csi_security.industry)
     sector = find_or_create_sector(csi_security.sector)
     security = Security.create(
-      security_type: security_type,
-      industry: industry,
-      sector: sector,
+      security_type_id: security_type && security_type.id,
+      industry_id: industry && industry.id,
+      sector_id: sector && sector.id,
       name: csi_security.name,
       search_key: extract_search_key_from_security_name(csi_security.name)
     )
@@ -382,7 +382,7 @@ class CsiDataImporter
     replacement_attributes[:search_key] = extract_search_key_from_security_name(csi_security.name) if security.name != csi_security.name
 
     if !replacement_attributes.empty?
-      log("Updating security:\n#{security.inspect}\n=> #{replacement_attributes.inspect}")
+      log("Updating security:\n#{security.to_hash}\n=> #{replacement_attributes.inspect}")
       security.update(replacement_attributes)
     end
 
@@ -395,7 +395,7 @@ class CsiDataImporter
     replacement_attributes[:csi_number] = csi_security.csi_number if listed_security.csi_number != csi_security.csi_number
 
     if !replacement_attributes.empty?
-      log("Updating listed security:\n#{listed_security.inspect}\n=> #{replacement_attributes.inspect}")
+      log("Updating listed security:\n#{listed_security.to_hash}\n=> #{replacement_attributes.inspect}")
       listed_security.update(replacement_attributes)
     end
 
