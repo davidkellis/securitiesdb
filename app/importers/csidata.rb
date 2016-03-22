@@ -400,7 +400,7 @@ class CsiDataImporter
     replacement_attributes[:symbol] = csi_security.symbol if listed_security.symbol != csi_security.symbol
     replacement_attributes[:listing_start_date] = convert_date(csi_security.start_date) if listed_security.listing_start_date != convert_date(csi_security.start_date)
     replacement_attributes[:listing_end_date] = convert_date(csi_security.end_date) if listed_security.listing_end_date != convert_date(csi_security.end_date)
-    replacement_attributes[:csi_number] = csi_security.csi_number if listed_security.csi_number != csi_security.csi_number
+    replacement_attributes[:csi_number] = csi_security.csi_number.to_i if listed_security.csi_number != csi_security.csi_number.to_i
 
     if !replacement_attributes.empty?
       log("Updating listed security:\n#{listed_security.to_hash}\n=> #{replacement_attributes.inspect}")
