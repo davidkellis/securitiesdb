@@ -23,7 +23,7 @@ module QuandlEod
 
   class Client
     ZIP_FILE_PATH = "./data/quandl_eod_database_<DATE>.zip"
-    CSV_FILE_PATH = "./data/quandl_eod_database_<DATE>.csv"
+    # CSV_FILE_PATH = "./data/quandl_eod_database_<DATE>.csv"
     CSV_FIELD_COUNT = 14
     DATABASE_NAME = "EOD"
 
@@ -80,8 +80,9 @@ module QuandlEod
 
     private
 
+    # todo: this needs to change so that the date
     def csv_file_path
-      @csv_file_path ||= CSV_FILE_PATH.gsub("<DATE>", Time.now.strftime("%Y%m%d"))
+      @csv_file_path ||= zip_file_path.gsub(/\.zip$/, ".csv")
     end
 
     def extract_csv_file_from_zipped_database
