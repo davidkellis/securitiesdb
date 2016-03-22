@@ -161,7 +161,7 @@ class CsiDataImporter
     active_date = Date.parse(csi_security.start_date).to_datestamp
 
     if exchange
-      # 2. lookup security in <exchange> by given symbol and active date
+      # 2. lookup listed securities in <exchange> by given symbol and active date
       listed_securities = ListedSecurity.
                      where(
                        exchange_id: exchange.id,
@@ -175,16 +175,24 @@ class CsiDataImporter
       case listed_securities.count
       when 0                                  # if no listed securities found, find or create for the underlying security and then create the listed security
         log("Creating #{csi_security.symbol} - #{csi_security.name} - in #{exchange.label}")
-        create_listed_security(csi_security, exchange, default_security_type)
+        listed_security = create_listed_security(csi_security, exchange, default_security_type)
+        log("=> Listed Security=#{listed_security.to_hash}")
+        log("=> Security=#{listed_security.security.to_hash}")
       when 1                                  # if one listed security found, update it
         listed_security = listed_securities.first
         security = listed_security.security
         if @similarity_measure.similarity(security.name.downcase, csi_security.name.downcase) >= APPROXIMATE_SEARCH_THRESHOLD
           log("Updating #{listed_security.symbol} (id=#{listed_security.id}) - #{security.name}")
-          update_listed_security(listed_security, csi_security, default_security_type)
+          listed_security = update_listed_security(listed_security, csi_security, default_security_type)
+          if listed_security
+            log("=> Listed Security=#{listed_security.to_hash}")
+            log("=> Security=#{listed_security.security.to_hash}")
+          end
         else
           log("Creating #{csi_security.symbol} - #{csi_security.name} - in #{exchange.label}; ListedSecurity #{listed_security.to_hash} and Security #{security.to_hash} do not match CSI Security #{csi_security.inspect}")
-          create_listed_security(csi_security, exchange, default_security_type)
+          listed_security = create_listed_security(csi_security, exchange, default_security_type)
+          log("=> Listed Security=#{listed_security.to_hash}")
+          log("=> Security=#{listed_security.security.to_hash}")
         end
       else                                    # if multiple listed securities found, we have a data problem
         log("Error: There are multiple listed securities with symbol \"#{csi_security.symbol}\"")
@@ -228,7 +236,7 @@ class CsiDataImporter
 
   # performs an exact security search by name
   def find_security_exact(name, security_type_name)
-    Security.association_join(:security_type).where(security_type__name: security_type_name, securities__name: name).first
+    Security.association_join(:security_type).select_all(:securities).where(security_type__name: security_type_name, securities__name: name).first
   end
 
   # performs an approximate security search by name
@@ -241,9 +249,9 @@ class CsiDataImporter
     # search for securities by approximate matching against search_key
     securities = case matches.count
     when 0
-      Security.association_join(:security_type).where(security_type__name: security_type_name, securities__name: name).to_a
+      Security.association_join(:security_type).select_all(:securities).where(security_type__name: security_type_name, securities__name: name).to_a
     when 1
-      Security.association_join(:security_type).where({security_type__name: security_type_name}, Sequel.or(securities__name: name, search_key: matches.first.value)).to_a
+      Security.association_join(:security_type).select_all(:securities).where({security_type__name: security_type_name}, Sequel.or(securities__name: name, search_key: matches.first.value)).to_a
     else
       matching_names = matches.map {|match| "#{match.value} - #{match.score}" }
       best_match_search_key = matches.first.value
@@ -251,7 +259,7 @@ class CsiDataImporter
       if search_key_best_match_score == 1 ||
           is_match_correct?("Is \"#{best_match_search_key}\" a match for the search phrase \"#{search_key}\"? Score=#{matches.first.score} (Y/n) ")
         log("Warning: Searching for ambiguous security name. Search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}) is being mapped to #{matching_names.first}. The #{matches.count} matches were:\n#{matching_names.join("\n")}")
-        Security.association_join(:security_type).where({security_type__name: security_type_name}, Sequel.or(securities__name: name, search_key: best_match_search_key)).to_a
+        Security.association_join(:security_type).select_all(:securities).where({security_type__name: security_type_name}, Sequel.or(securities__name: name, search_key: best_match_search_key)).to_a
       else
         log("Warning: Searching for ambiguous security name. Search key #{search_key} (name=#{name}   security_type_name=#{security_type_name}) is NOT being mapped to #{matching_names.first}. The #{matches.count} matches were:\n#{matching_names.join("\n")}")
         []
@@ -402,9 +410,11 @@ class CsiDataImporter
     listed_security
   rescue Sequel::ValidationFailed, Sequel::HookFailed => e
     log "Can't import #{csi_security.inspect}: #{e.message}"
+    nil
   rescue => e
     log "Can't import #{csi_security.inspect}: #{e.message}"
     log e.backtrace.join("\n")
+    nil
   end
 
 
