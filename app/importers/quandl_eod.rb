@@ -17,6 +17,10 @@ class QuandlEodImporter
     Application.logger.info("#{Time.now} - #{msg}")
   end
 
+  def error(msg)
+    Application.logger.error("#{Time.now} - #{msg}")
+  end
+
   def import_eod_bars_splits_and_dividends(all_eod_bars)
     all_eod_bars.each do |symbol, eod_bars|
       # eod_bars is an array of QuandlEod::EodBar objects; each has the following fields:
@@ -34,8 +38,12 @@ class QuandlEodImporter
       #   adjusted_close,
       #   adjusted_volume
       if !eod_bars.empty?
-        security = FindSecurity.us_stocks.run(symbol, eod_bars.first.date)
-        if security
+        securities = FindSecurity.us_stocks.all(symbol, eod_bars.first.date)
+        case securities.count
+        when 0
+          log "Security symbol '#{symbol}' not found in any US exchange."
+        when 1
+          security = securities.first
           most_recent_eod_bar = security.eod_bars_dataset.reverse_order(:date).first
 
           if most_recent_eod_bar
@@ -44,7 +52,8 @@ class QuandlEodImporter
             import_missing_eod_bars_splits_and_dividends(security, eod_bars)
           end
         else
-          log "Security symbol '#{symbol}' not found in any US exchange."
+          security_references = securities.map(&:to_hash)
+          error "Error: Security symbol '#{symbol}' identifies multiple securities:\n#{security_references.join("\n")}."
         end
       end
     end

@@ -20,25 +20,19 @@ class FindSecurity
     @exchanges = [exchange_or_exchanges].flatten.uniq
   end
 
-  def run(symbol, datestamp = current_datestamp())
-    # 1. if not found in (1), search in the appropriate constituent (local) exchange(s)
+  def all(symbol, datestamp = current_datestamp())
     if @exchanges && !@exchanges.empty?
-      listed_securities = if datestamp
-        ListedSecurity.
-          where(symbol: symbol, exchange_id: @exchanges.map(&:id)).
-          where { (listing_start_date =~ nil) | ((listing_start_date <= datestamp) & (listing_end_date >= datestamp)) }.
-          to_a
-      else
-        ListedSecurity.
-          where(symbol: symbol, exchange_id: @exchanges.map(&:id)).
-          to_a
-      end
+      listed_securities = find_listed_securities(symbol, datestamp)
+      listed_securities.map(&:security).uniq
+    end || []
+  end
 
-      case listed_securities.count
-      when 0
-        nil
-      when 1
-        listed_securities.first.security
+  def one(symbol, datestamp = current_datestamp())
+    if @exchanges && !@exchanges.empty?
+      listed_securities = find_listed_securities(symbol, datestamp)
+
+      if listed_securities.count <= 1
+        listed_securities.map(&:security).first
       else
         securities = listed_securities.map(&:security).uniq
         case securities.count
@@ -58,5 +52,18 @@ class FindSecurity
 
   def current_datestamp
     Date.today.strftime("%Y%m%d")
+  end
+
+  def find_listed_securities(symbol, datestamp)
+    if datestamp
+      ListedSecurity.
+        where(symbol: symbol, exchange_id: @exchanges.map(&:id)).
+        where { (listing_start_date =~ nil) | ((listing_start_date <= datestamp) & (listing_end_date >= datestamp)) }.
+        to_a
+    else
+      ListedSecurity.
+        where(symbol: symbol, exchange_id: @exchanges.map(&:id)).
+        to_a
+    end
   end
 end
