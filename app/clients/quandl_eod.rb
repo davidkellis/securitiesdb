@@ -21,9 +21,18 @@ module QuandlEod
     :adjusted_volume
   )
 
+  Security = Struct.new(
+    :ticker,
+    :name,
+    :exchange,
+    :last_trade_date
+  )
+
+
   class Client
     ZIP_FILE_PATH = "./data/quandl_eod_database_<DATE>.zip"
-    # CSV_FILE_PATH = "./data/quandl_eod_database_<DATE>.csv"
+    TICKER_LIST_URL = "http://static.quandl.com/end_of_day_us_stocks/ticker_list.csv"   # referenced at https://www.quandl.com/data/EOD/documentation/documentation
+    TICKER_LIST_HEADER = "Ticker,Name,Exchange,Last Trade Date"
     CSV_FIELD_COUNT = 14
     DATABASE_NAME = "EOD"
 
@@ -36,6 +45,10 @@ module QuandlEod
 
     def log(msg)
       Application.logger.info("#{Time.now} - #{msg}")
+    end
+
+    def securities
+      get_securities(TICKER_LIST_URL)
     end
 
     # If called without a block:
@@ -196,6 +209,17 @@ module QuandlEod
           record.adj_close,
           record.adj_volume
         )
+      end
+    end
+
+    def get_securities(url)
+      csv_contents = Net::HTTP.get(URI(url))
+      # csv_contents.encode!("UTF-8", "ISO-8859-1")   # CSI Data encodes their CSV files with the ISO-8859-1 character set, so we need to convert it to UTF-8
+      rows = CSV.parse(csv_contents, headers: false, return_headers: false, skip_lines: /^(\s*,\s*)*$/)
+      if rows.first.join(",") == TICKER_LIST_HEADER
+        rows.drop(1).map {|row| Security.new(*row.map{|s| s && s.strip }) }
+      else
+        raise "The securities list in #{url} doesn't conform to the expected row structure of: #{TICKER_LIST_HEADER}."
       end
     end
 
