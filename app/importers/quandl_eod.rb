@@ -22,6 +22,7 @@ class QuandlEodImporter
   end
 
   def import_eod_bars_splits_and_dividends(all_eod_bars)
+    ticker_to_security = @client.securities.map {|s| [s.ticker, s] }.to_h
     all_eod_bars.each do |symbol, eod_bars|
       # eod_bars is an array of QuandlEod::EodBar objects; each has the following fields:
       #   date,   # this is an integer of the form yyyymmdd
@@ -52,8 +53,16 @@ class QuandlEodImporter
             import_missing_eod_bars_splits_and_dividends(security, eod_bars)
           end
         else
-          security_references = securities.map(&:to_hash)
-          error "Error: Security symbol '#{symbol}' identifies multiple securities:\n#{security_references.join("\n")}."
+          quandl_eod_security = ticker_to_security[symbol]
+          if quandl_eod_security
+            # todo: swap the following 2 lines out for some logic to identify which security in <securities> is the closest match to quandl_eod_security.name
+            # and then if the similarity coefficient is >= 0.7, consider it a match; otherwise, log the error with the following 2 lines.
+            security_references = securities.map(&:to_hash)
+            error "Error: Security symbol '#{symbol}' identifies multiple securities:\n#{security_references.join("\n")}."
+          else
+            security_references = securities.map(&:to_hash)
+            error "Error: Security symbol '#{symbol}' identifies multiple securities:\n#{security_references.join("\n")}."
+          end
         end
       end
     end
