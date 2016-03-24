@@ -2,8 +2,11 @@ require 'csv'
 require 'zip'
 
 class QuandlEodImporter
+  APPROXIMATE_SEARCH_THRESHOLD = 0.7
+
   def initialize(quandl_eod_client)
     @client = quandl_eod_client
+    @similarity_measure = SimString::ComputeSimilarity.new(SimString::NGramBuilder.new(3), SimString::CosineMeasure.new)
   end
 
   def import
@@ -45,26 +48,44 @@ class QuandlEodImporter
           log "Security symbol '#{symbol}' not found in any US exchange."
         when 1
           security = securities.first
-          most_recent_eod_bar = security.eod_bars_dataset.reverse_order(:date).first
-
-          if most_recent_eod_bar
-            import_missing_eod_bars_splits_and_dividends(security, eod_bars.select {|eod_bar| eod_bar.date > most_recent_eod_bar.date })
-          else
-            import_missing_eod_bars_splits_and_dividends(security, eod_bars)
-          end
+          import_eod_bars_splits_and_dividends_for_single_security(security, eod_bars)
         else
           quandl_eod_security = ticker_to_security[symbol]
           if quandl_eod_security
-            # todo: swap the following 2 lines out for some logic to identify which security in <securities> is the closest match to quandl_eod_security.name
-            # and then if the similarity coefficient is >= 0.7, consider it a match; otherwise, log the error with the following 2 lines.
-            security_references = securities.map(&:to_hash)
-            error "Error: Security symbol '#{symbol}' identifies multiple securities:\n#{security_references.join("\n")}."
+            db = SecurityNameDatabase.new
+            security_name_to_security = securities.map {|security| [security.name.downcase, security] }.to_h
+            securities.each {|security| db.add(security.name.downcase) }
+            matches = db.ranked_search(quandl_eod_security.name.downcase, APPROXIMATE_SEARCH_THRESHOLD)
+            case matches.count
+            when 0
+              security_references = securities.map do |security|
+                "#{security.name} - #{@similarity_measure.similarity(security.name.downcase, quandl_eod_security.name)}"
+              end
+              error "Error: Security symbol '#{symbol}' identifies multiple securities but none match the Quandl EOD security name '#{quandl_eod_security.name}':\n#{security_references.join("\n")}."
+            when 1
+              match = matches.first
+              matching_security = security_name_to_security[match.value]
+              import_eod_bars_splits_and_dividends_for_single_security(matching_security, eod_bars)
+            else
+              security_references = matches.map {|match| "#{match.value} - #{match.score}" }
+              error "Error: Security symbol '#{symbol}' identifies multiple matching securities. The following securities approximately match '#{quandl_eod_security.name}':\n#{security_references.join("\n")}."
+            end
           else
             security_references = securities.map(&:to_hash)
             error "Error: Security symbol '#{symbol}' identifies multiple securities:\n#{security_references.join("\n")}."
           end
         end
       end
+    end
+  end
+
+  def import_eod_bars_splits_and_dividends_for_single_security(security, eod_bars)
+    most_recent_eod_bar = security.eod_bars_dataset.reverse_order(:date).first
+
+    if most_recent_eod_bar
+      import_missing_eod_bars_splits_and_dividends(security, eod_bars.select {|eod_bar| eod_bar.date > most_recent_eod_bar.date })
+    else
+      import_missing_eod_bars_splits_and_dividends(security, eod_bars)
     end
   end
 
