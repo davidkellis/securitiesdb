@@ -2,6 +2,7 @@ require 'csv'
 require 'zip'
 
 class QuandlFundamentalsImporter
+  APPROXIMATE_SEARCH_THRESHOLD = 0.7
   QUANDL_CORE_US_FUNDAMENTALS_DATABASE = "SF1"
 
   DIMENSION_TRANSLATION_TABLE = {
@@ -47,6 +48,7 @@ class QuandlFundamentalsImporter
   end
 
   def import_fundamentals(all_fundamentals)
+    ticker_to_security = @client.securities.map {|s| [s.ticker, s] }.to_h
     log "Importing fundamentals."
     all_fundamentals.each do |ticker, indicator, quandl_dimension, indicator_values|
       # IndicatorValue = Struct.new(:date, :value)
@@ -54,8 +56,12 @@ class QuandlFundamentalsImporter
       fundamental_dimension_name = DIMENSION_TRANSLATION_TABLE[quandl_dimension]
       if !indicator_values.empty?
         date_of_first_attribute_value = indicator_values.first.date
-        security = @find_security.run(ticker, date_of_first_attribute_value)    # identify the security that was actively trading under the ticker at that date
-        if security
+        securities = @find_security.all(ticker, date_of_first_attribute_value)    # try to identify the security that was actively trading under the ticker at that date
+        case securities.count
+        when 0
+          log "Security symbol '#{ticker}' not found in any US exchange."
+        when 1
+          security = securities.first
           fundamental_dataset = LookupFundamentals.lookup_fundamental_dataset(security, indicator, fundamental_dimension_name) ||
                                   create_fundamental_dataset(security, indicator, fundamental_dimension_name)
           most_recent_attribute_value = LookupFundamentals.lookup_fundamental_observations_dataset(fundamental_dataset, fundamental_dimension_name).
@@ -70,12 +76,38 @@ class QuandlFundamentalsImporter
             import_missing_fundamentals(fundamental_dataset, indicator_values)
           end
         else
-          log "Security symbol '#{ticker}' not found in any US exchange."
+          # todo: finish this section
+          security_reference = ticker_to_security[ticker]   # this is a QuandlFundamentals::Security object
+          if security_reference
+            db = SecurityNameDatabase.new
+            security_name_to_security = securities.map {|security| [security.name.downcase, security] }.to_h
+            securities.each {|security| db.add(security.name.downcase) }
+            matches = db.ranked_search(security_reference.name.downcase, APPROXIMATE_SEARCH_THRESHOLD)
+            case matches.count
+            when 0
+              security_references = securities.map do |security|
+                "#{security.name} - #{@similarity_measure.similarity(security.name.downcase, security_reference.name)}"
+              end
+              error "Error: Security symbol '#{ticker}' identifies multiple securities but none match the Quandl SF1 security name '#{security_reference.name}':\n#{security_references.join("\n")}."
+            when 1
+              match = matches.first
+              matching_security = security_name_to_security[match.value]
+
+              # todo: import fundamentals for <matching_security>
+            else
+              security_references = matches.map {|match| "#{match.value} - #{match.score}" }
+              error "Error: Security symbol '#{ticker}' identifies multiple matching securities. The following securities approximately match '#{security_reference.name}':\n#{security_references.join("\n")}."
+            end
+          else
+            security_references = securities.map(&:to_hash)
+            error "Error: Security symbol '#{ticker}' identifies multiple securities:\n#{security_references.join("\n")}."
+          end
         end
       end
     end
   end
 
+  # todo: rewrite this to take into account the new schema
   def create_fundamental_dataset(security, fundamental_attribute_label, fundamental_dimension_name)
     update_frequency = case fundamental_dimension_name
     when FundamentalDimension::INSTANTANEOUS
@@ -106,6 +138,7 @@ class QuandlFundamentalsImporter
     )
   end
 
+  # todo: rewrite this to take into account the new schema
   # indicator_values is an array of QuandlFundamentals::IndicatorValue objects
   def import_missing_fundamentals(fundamental_dataset, indicator_values)
     # log "Importing #{indicator_values.count} missing values of attribute '#{attribute_label}' (dimension=#{dimension_name}) from Quandl Fundamentals database for symbol #{security.symbol} (security id=#{security.id})."
