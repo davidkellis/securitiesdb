@@ -124,7 +124,7 @@ class QuandlFundamentalsImporter
     end
     fundamental_attribute = lookup_fundamental_attribute(fundamental_attribute_label)
     fundamental_dimension = lookup_fundamental_dimension(fundamental_dimension_name)
-    quandl_dataset_name = "#{security.symbol}_#{fundamental_attribute_label}_#{fundamental_dimension_name}"
+    quandl_dataset_name = "#{security.symbol}_#{fundamental_attribute_label}_#{fundamental_dimension_name}"   # todo: ::Security doesn't have a symbol field anymore; fix this
 
     new_time_series = TimeSeries.create(
       data_vendor_id: @data_vendor.id,
