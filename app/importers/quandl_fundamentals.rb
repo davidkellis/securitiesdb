@@ -55,26 +55,14 @@ class QuandlFundamentalsImporter
       quandl_dimension ||= FundamentalDimension::INSTANTANEOUS
       fundamental_dimension_name = DIMENSION_TRANSLATION_TABLE[quandl_dimension]
       if !indicator_values.empty?
-        date_of_first_attribute_value = indicator_values.first.date
+        date_of_first_attribute_value = indicator_values.first.date               # an integer value
         securities = @find_security.all(ticker, date_of_first_attribute_value)    # try to identify the security that was actively trading under the ticker at that date
         case securities.count
         when 0
           log "Security symbol '#{ticker}' not found in any US exchange."
         when 1
           security = securities.first
-          fundamental_dataset = LookupFundamentals.lookup_fundamental_dataset(security, indicator, fundamental_dimension_name) ||
-                                  create_fundamental_dataset(security, indicator, fundamental_dimension_name)
-          most_recent_attribute_value = LookupFundamentals.lookup_fundamental_observations_dataset(fundamental_dataset, fundamental_dimension_name).
-                                          reverse_order(:date).
-                                          first
-          if most_recent_attribute_value
-            import_missing_fundamentals(
-              fundamental_dataset,
-              indicator_values.select {|indicator_value| indicator_value.date > most_recent_attribute_value.date }
-            )
-          else
-            import_missing_fundamentals(fundamental_dataset, indicator_values)
-          end
+          import_fundamentals_for_single_security(security, indicator, fundamental_dimension_name, indicator_values)
         else
           # todo: finish this section
           security_reference = ticker_to_security[ticker]   # this is a QuandlFundamentals::Security object
@@ -92,8 +80,7 @@ class QuandlFundamentalsImporter
             when 1
               match = matches.first
               matching_security = security_name_to_security[match.value]
-
-              # todo: import fundamentals for <matching_security>
+              import_fundamentals_for_single_security(matching_security, indicator, fundamental_dimension_name, indicator_values)
             else
               security_references = matches.map {|match| "#{match.value} - #{match.score}" }
               error "Error: Security symbol '#{ticker}' identifies multiple matching securities. The following securities approximately match '#{security_reference.name}':\n#{security_references.join("\n")}."
@@ -104,6 +91,22 @@ class QuandlFundamentalsImporter
           end
         end
       end
+    end
+  end
+
+  def import_fundamentals_for_single_security(security, indicator, fundamental_dimension_name, indicator_values)
+    fundamental_dataset = LookupFundamentals.lookup_fundamental_dataset(security, indicator, fundamental_dimension_name) ||
+                            create_fundamental_dataset(security, indicator, fundamental_dimension_name)
+    most_recent_attribute_value = LookupFundamentals.lookup_fundamental_observations_dataset(fundamental_dataset, fundamental_dimension_name).
+                                    reverse_order(:date).
+                                    first
+    if most_recent_attribute_value
+      import_missing_fundamentals(
+        fundamental_dataset,
+        indicator_values.select {|indicator_value| indicator_value.date > most_recent_attribute_value.date }
+      )
+    else
+      import_missing_fundamentals(fundamental_dataset, indicator_values)
     end
   end
 
