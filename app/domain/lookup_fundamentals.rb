@@ -25,6 +25,7 @@ class LookupFundamentals
   def lookup_fundamental_dataset(security, fundamental_attribute_label, fundamental_dimension_name)
     security.
       fundamental_datasets_dataset.
+      select_all(:fundamental_datasets).
       join(:fundamental_attributes, :id => :fundamental_datasets__fundamental_attribute_id).
       join(:fundamental_dimensions, :id => :fundamental_datasets__fundamental_dimension_id).
       where(

@@ -62,7 +62,7 @@ class QuandlFundamentalsImporter
           log "Security symbol '#{ticker}' not found in any US exchange."
         when 1
           security = securities.first
-          import_fundamentals_for_single_security(security, indicator, fundamental_dimension_name, indicator_values)
+          import_fundamentals_for_single_security(security, ticker, indicator, fundamental_dimension_name, indicator_values)
         else
           # todo: finish this section
           security_reference = ticker_to_security[ticker]   # this is a QuandlFundamentals::Security object
@@ -80,7 +80,7 @@ class QuandlFundamentalsImporter
             when 1
               match = matches.first
               matching_security = security_name_to_security[match.value]
-              import_fundamentals_for_single_security(matching_security, indicator, fundamental_dimension_name, indicator_values)
+              import_fundamentals_for_single_security(matching_security, ticker, indicator, fundamental_dimension_name, indicator_values)
             else
               security_references = matches.map {|match| "#{match.value} - #{match.score}" }
               error "Error: Security symbol '#{ticker}' identifies multiple matching securities. The following securities approximately match '#{security_reference.name}':\n#{security_references.join("\n")}."
@@ -94,24 +94,27 @@ class QuandlFundamentalsImporter
     end
   end
 
-  def import_fundamentals_for_single_security(security, indicator, fundamental_dimension_name, indicator_values)
+  def import_fundamentals_for_single_security(security, ticker, indicator, fundamental_dimension_name, indicator_values)
     fundamental_dataset = LookupFundamentals.lookup_fundamental_dataset(security, indicator, fundamental_dimension_name) ||
-                            create_fundamental_dataset(security, indicator, fundamental_dimension_name)
+                            create_fundamental_dataset(security, ticker, indicator, fundamental_dimension_name)
     most_recent_attribute_value = LookupFundamentals.lookup_fundamental_observations_dataset(fundamental_dataset, fundamental_dimension_name).
                                     reverse_order(:date).
                                     first
     if most_recent_attribute_value
+      missing_indicator_values = indicator_values.select {|indicator_value| indicator_value.date > most_recent_attribute_value.date }
+      log("Importing #{missing_indicator_values.count} missing observations of indicator #{indicator} (#{fundamental_dimension_name})")
       import_missing_fundamentals(
         fundamental_dataset,
-        indicator_values.select {|indicator_value| indicator_value.date > most_recent_attribute_value.date }
+        missing_indicator_values
       )
     else
+      log("Importing #{indicator_values.count} observations of indicator #{indicator} (#{fundamental_dimension_name})")
       import_missing_fundamentals(fundamental_dataset, indicator_values)
     end
   end
 
   # todo: rewrite this to take into account the new schema
-  def create_fundamental_dataset(security, fundamental_attribute_label, fundamental_dimension_name)
+  def create_fundamental_dataset(security, ticker, fundamental_attribute_label, fundamental_dimension_name)
     update_frequency = case fundamental_dimension_name
     when FundamentalDimension::INSTANTANEOUS
       UpdateFrequency.irregular
@@ -124,20 +127,33 @@ class QuandlFundamentalsImporter
     end
     fundamental_attribute = lookup_fundamental_attribute(fundamental_attribute_label)
     fundamental_dimension = lookup_fundamental_dimension(fundamental_dimension_name)
-    quandl_dataset_name = "#{security.symbol}_#{fundamental_attribute_label}_#{fundamental_dimension_name}"   # todo: ::Security doesn't have a symbol field anymore; fix this
+    quandl_dataset_name = "#{ticker}_#{fundamental_attribute_label}_#{fundamental_dimension_name}"
 
-    new_time_series = TimeSeries.create(
-      data_vendor_id: @data_vendor.id,
-      update_frequency_id: update_frequency.id,
-      database: QUANDL_CORE_US_FUNDAMENTALS_DATABASE,
-      dataset: quandl_dataset_name
-    )
+    time_series = lookup_time_series(@data_vendor, QUANDL_CORE_US_FUNDAMENTALS_DATABASE, quandl_dataset_name) ||
+                  create_time_series(@data_vendor, update_frequency, QUANDL_CORE_US_FUNDAMENTALS_DATABASE, quandl_dataset_name)
 
     FundamentalDataset.create(
       security_id: security.id,
       fundamental_attribute_id: fundamental_attribute.id,
       fundamental_dimension_id: fundamental_dimension.id,
-      time_series_id: new_time_series.id
+      time_series_id: time_series.id
+    )
+  end
+
+  def lookup_time_series(data_vendor, database, dataset)
+    TimeSeries.first(
+      data_vendor_id: data_vendor.id,
+      database: database,
+      dataset: dataset
+    )
+  end
+
+  def create_time_series(data_vendor, update_frequency, database, dataset)
+    TimeSeries.create(
+      data_vendor_id: data_vendor.id,
+      update_frequency_id: update_frequency.id,
+      database: database,
+      dataset: dataset
     )
   end
 
