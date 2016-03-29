@@ -19,6 +19,7 @@ class QuandlFundamentalsImporter
     @find_security = FindSecurity.us_stocks
     @client = quandl_fundamentals_client
     @data_vendor = DataVendor.first(name: "Quandl")
+    @similarity_measure = SimString::ComputeSimilarity.new(SimString::NGramBuilder.new(3), SimString::CosineMeasure.new)
   end
 
   def import
@@ -33,6 +34,10 @@ class QuandlFundamentalsImporter
 
   def log(msg)
     Application.logger.info("#{Time.now} - #{msg}")
+  end
+
+  def error(msg)
+    Application.logger.error("#{Time.now} - #{msg}")
   end
 
   # indicators is an array of QuandlFundamentals::Indicator objects
