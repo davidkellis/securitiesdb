@@ -88,6 +88,7 @@ class Application
       # require_relative 'app/importers/bsym_securities'
       require_relative 'app/importers/csidata'
       require_relative 'app/importers/exchanges'
+      require_relative 'app/importers/optiondata'
       require_relative 'app/importers/quandl_bls'
       require_relative 'app/importers/quandl_cme'
       require_relative 'app/importers/quandl_eod'
