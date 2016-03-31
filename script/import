@@ -29,6 +29,8 @@ def main
     end
   end
 
+  puts opts.to_hash
+
 
   Application.load(opts[:config] || Application::DEFAULT_CONFIG_FILE_PATH)
 
@@ -108,7 +110,7 @@ def main
   end
 
   if opts.options_zip_files? || opts.all?
-    importer = OptionDataImporter.new(opts.options_zip_files)
+    importer = OptionDataImporter.new(opts[:options_zip_files])
     importer.import
   end
 
