@@ -66,7 +66,7 @@ class OptionDataImporter
       extraction_directory = File.join(base_directory, filename_wo_ext)
 
       puts "Creating extraction directory: #{extraction_directory}"
-      FileUtils.mkdir_p(data_directory_path)
+      FileUtils.mkdir_p(extraction_directory)
 
       puts "Processing #{zip_file_path}:"
       Zip::File.open(zip_file_path) do |zip_file|
