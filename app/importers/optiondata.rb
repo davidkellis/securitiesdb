@@ -45,12 +45,12 @@ class OptionDataImporter
   end
 
   def import
-    extract_csv_files_from_zipped_databases(@zip_file_paths)
-    # extract zip files into directory
-    # iterate over option_<date>.csv files in directory - for each csv file:
-    #   iterate over lines in file - for each line:
-    #     read line in as either a BasicRecord or a LegacyBasicRecord depending on the type of file
-    #     persist BasicRecord or LegacyBasicRecord to database via the Option and EodOptionQuote models
+    extracted_csv_file_paths = extract_csv_files_from_zipped_databases(@zip_file_paths)
+    extracted_csv_file_paths.each do |csv_file_path|
+      #   iterate over lines in file - for each line:
+      #     read line in as either a BasicRecord or a LegacyBasicRecord depending on the type of file
+      #     persist BasicRecord or LegacyBasicRecord to database via the Option and EodOptionQuote models
+    end
   end
 
   private
@@ -59,8 +59,9 @@ class OptionDataImporter
     Application.logger.info("#{Time.now} - #{msg}")
   end
 
+  # returns array of file paths representing paths to extracted files
   def extract_csv_files_from_zipped_databases(zip_file_paths)
-    zip_file_paths.each do |zip_file_path|
+    zip_file_paths.map do |zip_file_path|
       base_directory = File.dirname(zip_file_path)
       filename_wo_ext = File.basename(zip_file_path, ".zip")
       extraction_directory = File.join(base_directory, filename_wo_ext)
@@ -69,15 +70,20 @@ class OptionDataImporter
       FileUtils.mkdir_p(extraction_directory)
 
       puts "Processing #{zip_file_path}:"
+      extracted_paths = []
       Zip::File.open(zip_file_path) do |zip_file|
         zip_file.each do |entry|
           # Extract each file
           destination_path = File.join(extraction_directory, entry.name)
           log "Extracting #{entry.name} -> #{destination_path}"
-          entry.extract(destination_path) unless File.exists?(destination_path)
+          if !File.exists?(destination_path)
+            entry.extract(destination_path)
+            extracted_paths << destination_path
+          end
         end
       end
-    end
+      extracted_paths
+    end.flatten.uniq
   end
 
 end
