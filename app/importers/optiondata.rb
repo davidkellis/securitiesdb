@@ -17,6 +17,9 @@ class OptionDataImporter
     :open_interest
   )
 
+  # example row:
+  # Underlying,Underlying Price,Expiry,Type,Strike,Open,Last,High,Low,Bid,Ask,Bid Size,Ask Size,Volume,Open Interest,Change,Prev Close,Change Percent,Contract High,Contract Low,Contract Type,Last Trade Date,Underlying Volume
+  # A,41.81,20160115,C,25,0,11.3,0,0,14.25,15.9,54,170,0,50,0,11.3,0,18,11.3,STAN,2015-10-12T09:33:07-04:00,1450968
   BasicRecord = Struct.new(
     :observation_date,    # an integer datestamp yyyymmdd
     :underlying,
