@@ -11,6 +11,7 @@ This project populates a local postgres database with security symbols, un-adjus
 - Official US figures on money supply, interest rates, mortgages, government finances, bank assets and debt, exchange rates, industrial production are sourced from Quandl's free FED database (see https://www.quandl.com/data/FED)
 - US economic stats, imports/exports, domestic production, etc. are sourced from Quandl's USCENSUS database. (see https://www.quandl.com/data/USCENSUS)
 - US Treasury rates, yield curve rates, debt, tax revenues, etc. are sourced from Quandl's USTREASURY database. (see https://www.quandl.com/data/USTREASURY)
+- Historical options data is sourced from OptionData.net (see http://optiondata.net/)
 
 ## Setup
 
