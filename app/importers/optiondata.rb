@@ -102,6 +102,7 @@ class OptionDataImporter
     end.flatten.uniq
   end
 
+  # todo: refactor this
   def enumerate_records_in_csv(csv_file_path, &blk)
     observation_datestamp = /options_([0-9]{8})\.csv/.match(csv_file_path)[1].to_i
 
