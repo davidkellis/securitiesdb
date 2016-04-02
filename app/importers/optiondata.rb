@@ -62,9 +62,8 @@ class OptionDataImporter
     extracted_csv_file_paths = extract_csv_files_from_zipped_databases(@zip_file_paths)
     extracted_csv_file_paths.each do |csv_file_path|
       enumerate_records_in_csv(csv_file_path) do |record|
-        puts record.inspect
+        import_option(record)
         return
-        #     persist BasicRecord or LegacyBasicRecord to database via the Option and EodOptionQuote models
       end
     end
   end
@@ -176,6 +175,20 @@ class OptionDataImporter
       end
       line_count += 1
     end
+  end
+
+  # this script assumes all options are listed on the CBOE exchange exclusively
+  def import_option(record)
+    puts record.inspect
+
+    # look up underlying security by symbol (i.e. record.underlying)
+    # look up option for given underlying security, expiration, type (call/put), strike, and style (american/european)
+    # if option is found,
+    #   verify that option contract details haven't changed - if so, log an error
+    # otherwise,
+    #   create option with details taken from <record>
+    #   create option security that corresponds to new option
+    #   create listed security for option security in CBOE exchange for duration of lifetime of contract
   end
 
 end
