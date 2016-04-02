@@ -13,13 +13,37 @@ This project populates a local postgres database with security symbols, un-adjus
 - US Treasury rates, yield curve rates, debt, tax revenues, etc. are sourced from Quandl's USTREASURY database. (see https://www.quandl.com/data/USTREASURY)
 - Historical options data is sourced from OptionData.net (see http://optiondata.net/)
 
-## Setup
+## Getting Started
 
-Prerequisites:
-- Install Postgres libraries so that step 2 can install the pg gem (this is only applicable if using MRI, as JRuby doesn't need the pg gem).
+1. ```git clone``` this project
+   ```
+   git clone https://github.com/davidkellis/securitiesdb.git
+   ```
 
+2. [Optional] If you want any data from Quandl.com, create an account at [Quandl.com](https://www.quandl.com/) and configure project with your Quandl API key and version information:
+   1. Register for an account at Quandl.com
+   2. Look up your API key:
+      1. Go to Account Settings at https://www.quandl.com/account
+      2. Click the API Key link in the navigation bar on the left-hand side of the Account Settings page
+      3. Note the API Key and version information
+   3. Create a config/application.yml file by copying the config/application.sample.yml file into config/application.yml
+   4. Open config/application.yml and change the lines that read:
+      ```
+      quandl:
+         api_key: abc123
+         api_version: "2015-04-09"
+      ```
+      so that they api_key and api_version match the values you noted from Quandl.com
+   5. Save your changes to config/application.yml
 
-1. Install Ruby or JRuby
+3. [Optional] If you want any historical options data from OptionData.net:
+   1. Place an order for data
+   2. Download the zipped data sets from the link they send you by e-mail
+   3. Copy the downloaded zip files into the data/ directory within the securitiesdb project directory
+
+4. Install Postgres libraries so that step 2 can install the pg gem (this is only applicable if using MRI, as JRuby doesn't need the pg gem).
+
+5. Install Ruby or JRuby
    ```
    rbenv install 2.2.3
    ```
@@ -33,18 +57,18 @@ Prerequisites:
    export JRUBY_OPTS=-J-Xmx8g
    ```
 
-2. Install bundler (if not already installed)
+6. Install bundler (if not already installed)
    ```
    gem install bundler
    ```
-3. bundle install
-4. Change database connection string in application.yml
-5. Setup Database
+7. bundle install
+8. Change database connection string in application.yml
+9. Setup Database
    ```
    script/setup_db
    ```
 
-6. Import data
+10. Import data
 
    To import all data:
    ```
