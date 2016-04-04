@@ -181,14 +181,52 @@ class OptionDataImporter
   def import_option(record)
     puts record.inspect
 
-    # look up underlying security by symbol (i.e. record.underlying)
-    # look up option for given underlying security, expiration, type (call/put), strike, and style (american/european)
-    # if option is found,
-    #   verify that option contract details haven't changed - if so, log an error
-    # otherwise,
-    #   create option with details taken from <record>
-    #   create option security that corresponds to new option
-    #   create listed security for option security in CBOE exchange for duration of lifetime of contract
+    # per http://optiondata.net/collections/yearly-historical-options-data-sets:
+    # "The Basic Data Package includes every optionable equity symbol available for its specific year.
+    # We gather data from every US based option exchange including NASDAQ, NYSE, AMEX, CBOE, BATS, BOX, C2, MIAX, PHLX, and ARCA."
+    underlying_security = find_underlying_security(record)
+
+    if underlying_security
+      # look up option for given underlying security, expiration, type (call/put), strike, and style (american/european)
+      # todo: remove the hardcoded 'A' from the query - we need to determine whether given option (i.e. <record>) is an American or European style option
+      option = find_option(underlying_security, record.expiry, record.call_or_put, record.strike, 'A') || create_option(underlying_security, record)
+
+      if option
+        # create EodOptionQuote for <record> if it doesn't already exist
+      else
+        log "Unable to find or create option referenced by: record=#{record.to_h}"
+      end
+    end
+  end
+
+  def find_underlying_security(record)
+    # per http://optiondata.net/collections/yearly-historical-options-data-sets:
+    # "The Basic Data Package includes every optionable equity symbol available for its specific year.
+    # We gather data from every US based option exchange including NASDAQ, NYSE, AMEX, CBOE, BATS, BOX, C2, MIAX, PHLX, and ARCA."
+    underlying_securities = FindSecurity.us_exchanges.all(record.underlying, record.observation_date)
+    underlying_security = case underlying_securities.count
+    when 0
+      log "Unable to import option. Can't find underlying security. record=#{record.to_h}"
+      nil
+    when 1
+      underlying_securities.first
+    else
+      log "Unable to import option. Underlying security symbol ambiguously identifies #{underlying_securities.count} securities:\nrecord=#{record.to_h}\nmatched underlying securities=#{underlying_securities.map(&:to_hash).join("\n")}"
+      nil
+    end
+  end
+
+  # call_or_put is designated with 'C' or 'P'
+  # american_or_european is designated with 'A' or 'E'
+  def find_option(underlying_security, expiration, call_or_put, strike, american_or_european)
+    underlying_security.options_dataset.where(expiration: expiration, type: call_or_put, strike: strike, style: american_or_european).first
+  end
+
+  def create_option(underlying_security, record)
+    # create option with details taken from <record>
+    # create option security that corresponds to new option
+    # create listed security for option security in CBOE exchange for duration of lifetime of contract
+    # create EodOptionQuote for <record>
   end
 
 end

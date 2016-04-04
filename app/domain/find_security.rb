@@ -6,6 +6,10 @@ class FindSecurity
       @all_exchanges ||= FindSecurity.new(Exchange.all)
     end
 
+    def us_exchanges
+      @us_exchanges ||= FindSecurity.new(Exchange.us_exchanges.to_a)
+    end
+
     def us_stocks
       @us_stocks ||= FindSecurity.new(Exchange.us_stock_exchanges.to_a)
     end
