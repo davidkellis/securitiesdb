@@ -334,22 +334,7 @@ class CsiDataImporter
 
   def create_security(csi_security, default_security_type)
     security_type_name = lookup_security_type(csi_security, default_security_type)
-    security_type = find_or_create_security_type(security_type_name)
-    industry = find_or_create_industry(csi_security.industry)
-    sector = find_or_create_sector(csi_security.sector)
-    security = Security.create(
-      security_type_id: security_type && security_type.id,
-      industry_id: industry && industry.id,
-      sector_id: sector && sector.id,
-      name: csi_security.name,
-      search_key: extract_search_key_from_security_name(csi_security.name)
-    )
-
-    db = SecurityNameDatabaseRegistry.get(security_type_name)
-    search_key = extract_search_key_from_security_name(csi_security.name)
-    db.add(search_key)
-
-    security
+    CreateSecurity.run(csi_security.name, security_type_name, csi_security.industry, csi_security.sector)
   end
 
   # CsiData::Security is defined as

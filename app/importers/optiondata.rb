@@ -53,6 +53,9 @@ class OptionDataImporter
   BASIC_HEADER            = "Underlying,Underlying Price,Expiry,Type,Strike,Last,Bid,Ask,Volume,OpenInterest,Open,High,Low,Prev Close,Change,Change Percent,Bid Size,Ask Size,Contract High,Contract Low,Contract Type,Last Trade Date,Underlying Volume"
   BASIC_ROW_FIELD_COUNT   = BASIC_HEADER.split(',').count
 
+  AMERICAN_STYLE_OPTION   = 'A'
+  EQUITY_OPTION = 'Equity Option'
+
 
   def initialize(zip_file_paths)
     @zip_file_paths = zip_file_paths
@@ -120,7 +123,7 @@ class OptionDataImporter
           fields[0], 					      # :underlying,
           fields[1].to_f, 			    # :underlying_price,
           fields[2].to_i,			      # :expiry,
-          fields[3], 					      # :call_or_put,         # type
+          fields[3].upcase, 				# :call_or_put,         # type = C or P
           fields[4].to_f, 					# :strike,
           fields[5].to_f, 					# :last,
           fields[6].to_f, 					# :bid,
@@ -141,7 +144,7 @@ class OptionDataImporter
           fields[0], 					      # :underlying,
           fields[1].to_f, 			    # :underlying_price,
           fields[2].to_i,			      # :expiry,
-          fields[3], 					      # :call_or_put,         # type
+          fields[3].upcase, 				# :call_or_put,         # type = C or P
           fields[4].to_f, 					# :strike,
           fields[5].to_f, 					# :last,
           fields[6].to_f, 					# :bid,
@@ -189,10 +192,10 @@ class OptionDataImporter
     if underlying_security
       # look up option for given underlying security, expiration, type (call/put), strike, and style (american/european)
       # todo: remove the hardcoded 'A' from the query - we need to determine whether given option (i.e. <record>) is an American or European style option
-      option = find_option(underlying_security, record.expiry, record.call_or_put, record.strike, 'A') || create_option(underlying_security, record)
+      option = find_option(underlying_security, record.expiry, record.call_or_put, record.strike, AMERICAN_STYLE_OPTION) || create_option(underlying_security, record, AMERICAN_STYLE_OPTION)
 
       if option
-        # create EodOptionQuote for <record> if it doesn't already exist
+        find_eod_option_quote(option.id, record.observation_date) || create_eod_option_quote(option.id, record)
       else
         log "Unable to find or create option referenced by: record=#{record.to_h}"
       end
@@ -222,11 +225,68 @@ class OptionDataImporter
     underlying_security.options_dataset.where(expiration: expiration, type: call_or_put, strike: strike, style: american_or_european).first
   end
 
-  def create_option(underlying_security, record)
-    # create option with details taken from <record>
-    # create option security that corresponds to new option
-    # create listed security for option security in CBOE exchange for duration of lifetime of contract
-    # create EodOptionQuote for <record>
+  def create_option(underlying_security, record, american_or_european)
+    option_symbol = occ_option_symbol(record)
+    security = CreateSecurity.run(option_symbol, EQUITY_OPTION)
+    option = Option.create(
+      security_id: security.id,
+      underlying_security_id: underlying_security.id,
+      expiration: record.expiry,
+      type: record.call_or_put,
+      strike: record.strike,
+      style: american_or_european
+    )
+    listed_security = ListedSecurity.create(
+      exchange_id: cboe.id,
+      security_id: security.id,
+      symbol: option_symbol,
+      listing_start_date: # todo: first issuance of option contract,
+      listing_end_date: record.expiry
+    )
+    option
+  end
+
+  def find_eod_option_quote(option_id, observation_date)
+    EodOptionQuote.first(option_id: option_id, date: observation_date)
+  end
+
+  def create_eod_option_quote(option_id, record)
+    EodOptionQuote.create(
+      option_id: option_id,
+      date: record.observation_date,
+      last: record.last,
+      bid: record.bid,
+      ask: record.ask,
+      volume: record.volume,
+      open_interest: record.open_interest
+    )
+  end
+
+  def cboe
+    @cboe ||= Exchange.cboe.first
+  end
+
+  # https://en.wikipedia.org/wiki/Option_symbol#The_OCC_Option_Symbol
+  # The OCC option symbol consists of 4 parts:
+  #
+  # Root symbol of the underlying stock or ETF, padded with spaces to 6 characters
+  # Expiration date, 6 digits in the format yymmdd
+  # Option type, either P or C, for put or call
+  # Strike price, as the price x 1000, front padded with 0s to 8 digits
+  #
+  # Examples:
+  #
+  # SPX   141122P00019500
+  # This symbol represents a put on SPX, expiring on 11/22/2014, with a strike price of $19.50.
+  #
+  # LAMR  150117C00052500
+  # This symbol represents a call on LAMR, expiring on 1/17/2015, with a strike price of $52.50.
+  def occ_option_symbol(record)
+    root_symbol = # todo
+    expiration = # todo
+    type = # todo
+    strike = # todo
+    "#{root_symbol}#{expiration}#{type}#{strike}"
   end
 
 end
