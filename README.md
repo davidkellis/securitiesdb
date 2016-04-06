@@ -88,13 +88,6 @@ excellent articles - [(1) Securities Master Databases for Algorithmic Trading](h
    script/import --csi --quandl-eod --quandl-fundamentals
    ```
 
-   To import only exchanges:
-   ```
-   script/import -e
-   OR
-   script/import --exchanges
-   ```
-
 ## Reset Database
 
 ```
