@@ -44,7 +44,7 @@ excellent articles - [(1) Securities Master Databases for Algorithmic Trading](h
    2. Download the zipped data sets from the link they send you by e-mail
    3. Copy the downloaded zip files into the data/ directory within the securitiesdb project directory
 
-4. Install Postgres libraries so that step 2 can install the pg gem (this is only applicable if using MRI, as JRuby doesn't need the pg gem).
+4. Install Postgres libraries so that step 7 can install the pg gem (this is only applicable if using MRI, as JRuby doesn't need the pg gem).
 
 5. Install Ruby or JRuby
    ```
@@ -64,8 +64,14 @@ excellent articles - [(1) Securities Master Databases for Algorithmic Trading](h
    ```
    gem install bundler
    ```
+   
 7. bundle install
+   ```
+   bundle install
+   ```
+   
 8. Change database connection string in application.yml
+
 9. Setup Database
    ```
    script/setup_db
