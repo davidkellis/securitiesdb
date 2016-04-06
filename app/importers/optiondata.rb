@@ -7,8 +7,8 @@ class OptionDataImporter
     :observation_date,    # an integer datestamp yyyymmdd
     :underlying,
     :underlying_price,
-    :expiry,
-    :call_or_put,         # type
+    :expiry,              # an integer datestamp yyyymmdd
+    :call_or_put,         # type - C or P
     :strike,
     :last,
     :bid,
@@ -24,8 +24,8 @@ class OptionDataImporter
     :observation_date,    # an integer datestamp yyyymmdd
     :underlying,
     :underlying_price,
-    :expiry,
-    :call_or_put,         # type
+    :expiry,              # an integer datestamp yyyymmdd
+    :call_or_put,         # type - C or P
     :strike,
     :last,
     :bid,
@@ -195,6 +195,9 @@ class OptionDataImporter
       option = find_option(underlying_security, record.expiry, record.call_or_put, record.strike, AMERICAN_STYLE_OPTION) || create_option(underlying_security, record, AMERICAN_STYLE_OPTION)
 
       if option
+        # todo: if the current record's observation_date is earlier than the listing_start_date of this option's ListedSecurity,
+        # then we need to update the ListedSecurity's listing_start_date to the current record's observation_date
+
         find_eod_option_quote(option.id, record.observation_date) || create_eod_option_quote(option.id, record)
       else
         log "Unable to find or create option referenced by: record=#{record.to_h}"
@@ -226,7 +229,7 @@ class OptionDataImporter
   end
 
   def create_option(underlying_security, record, american_or_european)
-    option_symbol = occ_option_symbol(record)
+    option_symbol = occ_option_symbol_from_record(record)
     security = CreateSecurity.run(option_symbol, EQUITY_OPTION)
     option = Option.create(
       security_id: security.id,
@@ -240,7 +243,7 @@ class OptionDataImporter
       exchange_id: cboe.id,
       security_id: security.id,
       symbol: option_symbol,
-      listing_start_date: # todo: first issuance of option contract,
+      listing_start_date: record.observation_date,    # we start with the observation date of the current record, and then update it later if we observe any earlier record of this option's price
       listing_end_date: record.expiry
     )
     option
@@ -281,12 +284,21 @@ class OptionDataImporter
   #
   # LAMR  150117C00052500
   # This symbol represents a call on LAMR, expiring on 1/17/2015, with a strike price of $52.50.
-  def occ_option_symbol(record)
-    root_symbol = # todo
-    expiration = # todo
-    type = # todo
-    strike = # todo
+  def occ_option_symbol(underlying_symbol, expiration_yymmdd, call_or_put, strike_price)
+    root_symbol = underlying_symbol.strip.upcase.ljust(6, ' ')
+    expiration = expiration_yymmdd
+    type = call_or_put
+    strike = (strike_price.to_f * 1000).round.to_s.rjust(8, '0')
     "#{root_symbol}#{expiration}#{type}#{strike}"
+  end
+
+  def occ_option_symbol_from_record(record)
+    occ_option_symbol(
+      record.underlying,
+      record.expiry.to_s[2...8],    # extract the yymmdd from the yyyymmdd-formatted datestamp
+      record.call_or_put,
+      record.strike
+    )
   end
 
 end
