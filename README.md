@@ -64,12 +64,12 @@ excellent articles - [(1) Securities Master Databases for Algorithmic Trading](h
    ```
    gem install bundler
    ```
-   
+
 7. bundle install
    ```
    bundle install
    ```
-   
+
 8. Change database connection string in application.yml
 
 9. Setup Database
@@ -79,13 +79,19 @@ excellent articles - [(1) Securities Master Databases for Algorithmic Trading](h
 
 10. Import data
 
-   To import all data:
+   Import all data
    ```
    script/import --all
-   OR
-   script/import -c --quandl-eod --quandl-fundamentals
-   OR
+   ```
+
+   Import all stock symbols, EOD prices, fundamentals
+   ```
    script/import --csi --quandl-eod --quandl-fundamentals
+   ```
+
+   Import all stock symbols and options
+   ```
+   script/import --csi -o data/options2006.zip
    ```
 
 ## Reset Database

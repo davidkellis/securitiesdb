@@ -64,9 +64,9 @@ class OptionDataImporter
   def import
     extracted_csv_file_paths = extract_csv_files_from_zipped_databases(@zip_file_paths)
     extracted_csv_file_paths.each do |csv_file_path|
+      puts "Importing #{csv_file_path}"
       enumerate_records_in_csv(csv_file_path) do |record|
         import_option(record)
-        return
       end
     end
   end
@@ -182,8 +182,6 @@ class OptionDataImporter
 
   # this script assumes all options are exclusively listed on the CBOE; all newly created option Securities are listed *only* on the CBOE
   def import_option(record)
-    puts record.to_h
-
     # per http://optiondata.net/collections/yearly-historical-options-data-sets:
     # "The Basic Data Package includes every optionable equity symbol available for its specific year.
     # We gather data from every US based option exchange including NASDAQ, NYSE, AMEX, CBOE, BATS, BOX, C2, MIAX, PHLX, and ARCA."
@@ -211,7 +209,7 @@ class OptionDataImporter
     underlying_securities = FindSecurity.us_exchanges.all(record.underlying, record.observation_date)
     underlying_security = case underlying_securities.count
     when 0
-      log "Unable to import option. Can't find underlying security. record=#{record.to_h}"
+      log "Unable to import option. Can't find underlying security: underlying=#{record.underlying} observation_date=#{record.observation_date}"
       nil
     when 1
       underlying_securities.first
