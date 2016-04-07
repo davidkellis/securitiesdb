@@ -10,7 +10,6 @@ def main
     o.bool '-a', '--all', "Download and import everything - exchanges, symbols, EOD data, splits, dividends, fundamentals, options, etc."
     # o.bool '-b', '--bsym', 'Import Bloomberg Open Symbology - Exchanges and Symbols'
     o.bool '-d', '--download_dbs', "Download full database snapshots from Quandl."
-    o.bool '-e', '--exchanges', "Import exchanges"
     o.bool '-c', '--csi', 'Import CSI Data - Exchanges and Symbols'
     o.array '-o', '--options-zip-files', "Import historical option prices from the specified zip files downloaded from OptionData.net (see http://optiondata.net/)"
     o.bool '--quandl-bls', "Import BLS time series from Quandl's BLS databases (see https://www.quandl.com/data/BLSE/ and https://www.quandl.com/data/BLSP/)."
