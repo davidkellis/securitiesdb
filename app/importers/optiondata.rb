@@ -180,9 +180,9 @@ class OptionDataImporter
     end
   end
 
-  # this script assumes all options are listed on the CBOE exchange exclusively
+  # this script assumes all options are exclusively listed on the CBOE; all newly created option Securities are listed *only* on the CBOE
   def import_option(record)
-    puts record.inspect
+    puts record.to_h
 
     # per http://optiondata.net/collections/yearly-historical-options-data-sets:
     # "The Basic Data Package includes every optionable equity symbol available for its specific year.
@@ -195,8 +195,7 @@ class OptionDataImporter
       option = find_option(underlying_security, record.expiry, record.call_or_put, record.strike, AMERICAN_STYLE_OPTION) || create_option(underlying_security, record, AMERICAN_STYLE_OPTION)
 
       if option
-        # todo: if the current record's observation_date is earlier than the listing_start_date of this option's ListedSecurity,
-        # then we need to update the ListedSecurity's listing_start_date to the current record's observation_date
+        update_listed_security_start_date_if_needed(option, record)
 
         find_eod_option_quote(option.id, record.observation_date) || create_eod_option_quote(option.id, record)
       else
@@ -240,13 +239,24 @@ class OptionDataImporter
       style: american_or_european
     )
     listed_security = ListedSecurity.create(
-      exchange_id: cboe.id,
+      exchange_id: cboe.id,                           # create a single ListedSecurity for the option, and list it on the CBOE
       security_id: security.id,
       symbol: option_symbol,
       listing_start_date: record.observation_date,    # we start with the observation date of the current record, and then update it later if we observe any earlier record of this option's price
       listing_end_date: record.expiry
     )
     option
+  end
+
+  def update_listed_security_start_date_if_needed(option, record)
+    listed_securities = option.security.listed_securities_dataset.where(exchange_id: cboe.id).all
+
+    if listed_securities.count == 1
+      listed_security = listed_securities.first
+      listed_security.update(listing_start_date: record.observation_date) if record.observation_date < listed_security.listing_start_date
+    else
+      log("Error: Expected one CBOE listing for option #{option.to_hash}, but found the following listings: #{listed_securities.inspect}")
+    end
   end
 
   def find_eod_option_quote(option_id, observation_date)
