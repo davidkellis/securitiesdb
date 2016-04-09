@@ -1,3 +1,5 @@
+require 'lru_redux'
+
 # this imports historical options prices from the zip files downloaded from http://optiondata.net/
 class OptionDataImporter
   # example row:
@@ -59,6 +61,7 @@ class OptionDataImporter
 
   def initialize(zip_file_paths)
     @zip_file_paths = zip_file_paths
+    @underlying_security_cache = LruRedux::Cache.new(20)
   end
 
   def import
@@ -206,7 +209,9 @@ class OptionDataImporter
     # per http://optiondata.net/collections/yearly-historical-options-data-sets:
     # "The Basic Data Package includes every optionable equity symbol available for its specific year.
     # We gather data from every US based option exchange including NASDAQ, NYSE, AMEX, CBOE, BATS, BOX, C2, MIAX, PHLX, and ARCA."
-    underlying_securities = FindSecurity.us_exchanges.all(record.underlying, record.observation_date)
+    underlying_securities = @underlying_security_cache.getset("#{record.underlying},#{record.observation_date}") do
+      FindSecurity.us_exchanges.all(record.underlying, record.observation_date)
+    end
     underlying_security = case underlying_securities.count
     when 0
       log "Unable to import option. Can't find underlying security: underlying=#{record.underlying} observation_date=#{record.observation_date}"
