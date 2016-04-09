@@ -206,21 +206,21 @@ class OptionDataImporter
   end
 
   def find_underlying_security(record)
-    # per http://optiondata.net/collections/yearly-historical-options-data-sets:
-    # "The Basic Data Package includes every optionable equity symbol available for its specific year.
-    # We gather data from every US based option exchange including NASDAQ, NYSE, AMEX, CBOE, BATS, BOX, C2, MIAX, PHLX, and ARCA."
-    underlying_securities = @underlying_security_cache.getset("#{record.underlying},#{record.observation_date}") do
-      FindSecurity.us_exchanges.all(record.underlying, record.observation_date)
-    end
-    underlying_security = case underlying_securities.count
-    when 0
-      log "Unable to import option. Can't find underlying security: underlying=#{record.underlying} observation_date=#{record.observation_date}"
-      nil
-    when 1
-      underlying_securities.first
-    else
-      log "Unable to import option. Underlying security symbol ambiguously identifies #{underlying_securities.count} securities:\nrecord=#{record.to_h}\nmatched underlying securities=#{underlying_securities.map(&:to_hash).join("\n")}"
-      nil
+    @underlying_security_cache.getset("#{record.underlying},#{record.observation_date}") do
+      # per http://optiondata.net/collections/yearly-historical-options-data-sets:
+      # "The Basic Data Package includes every optionable equity symbol available for its specific year.
+      # We gather data from every US based option exchange including NASDAQ, NYSE, AMEX, CBOE, BATS, BOX, C2, MIAX, PHLX, and ARCA."
+      underlying_securities = FindSecurity.us_exchanges.all(record.underlying, record.observation_date)
+      underlying_security = case underlying_securities.count
+      when 0
+        log "Unable to import option. Can't find underlying security: underlying=#{record.underlying} observation_date=#{record.observation_date}"
+        nil
+      when 1
+        underlying_securities.first
+      else
+        log "Unable to import option. Underlying security symbol ambiguously identifies #{underlying_securities.count} securities:\nrecord=#{record.to_h}\nmatched underlying securities=#{underlying_securities.map(&:to_hash).join("\n")}"
+        nil
+      end
     end
   end
 
