@@ -8,9 +8,30 @@ module QuandlFundamentals
   Indicator = Struct.new(:label, :title, :available_dimensions, :statement, :description, :na_value, :units)
   IndicatorValue = Struct.new(:date, :value)
 
+  Security = Struct.new(
+    :ticker,
+    :name,
+    :cusip,
+    :isin,
+    :currency,
+    :sector,
+    :industry,
+    :last_updated,
+    :prior_tickers,
+    :ticker_change_date,
+    :related_tickers,
+    :exchange,
+    :sic,
+    :perma_ticker,
+    :location,
+    :delisted_from,
+    :is_foreign
+  )
+
   class Client
-    ZIP_FILE_PATH = "./data/fundamentals_database_<DATE>.zip"
-    CSV_FILE_PATH = "./data/fundamentals_database_<DATE>.csv"
+    ZIP_FILE_PATH = "./data/quandl_fundamentals_database_<DATE>.zip"
+    TICKER_LIST_URL = "http://www.sharadar.com/meta/tickers.txt"        # referenced at https://www.quandl.com/data/SF1/documentation/tickers
+    TICKER_LIST_HEADER = "Ticker	Name	CUSIP	ISIN	Currency	Sector	Industry	Last Updated	Prior Tickers	Ticker Change Date	Related Tickers	Exchange	SIC	Perma Ticker	Location	Delisted From	Is Foreign"
     INDICATORS_URL = "http://www.sharadar.com/meta/indicators.txt"      # referenced at https://www.quandl.com/data/SF1/documentation/indicators
     INDICATOR_LISTING_HEADER = ["Indicator", "Title", "Available Dimensions", "Statement", "Description", "NA Value", "Units"]
     CSV_FIELD_COUNT = 3
@@ -25,6 +46,10 @@ module QuandlFundamentals
 
     def log(msg)
       Application.logger.info("#{Time.now} - #{msg}")
+    end
+
+    def securities
+      get_securities(TICKER_LIST_URL)
     end
 
     def indicators
@@ -52,7 +77,7 @@ module QuandlFundamentals
     def all_fundamentals(&blk)
       if block_given?
         download_full_database
-        extract_csv_file_from_zipped_database
+        extract_csv_file_from_zipped_database unless File.exists?(csv_file_path)
         # delete_zipped_database
         enumerate_rowsets_in_csv(&blk)
         delete_extracted_csv_database
@@ -69,7 +94,7 @@ module QuandlFundamentals
     private
 
     def csv_file_path
-      @csv_file_path ||= CSV_FILE_PATH.gsub("<DATE>", Time.now.strftime("%Y%m%d"))
+      @csv_file_path ||= zip_file_path.gsub(/\.zip$/, ".csv")
     end
 
     def extract_csv_file_from_zipped_database
@@ -140,6 +165,17 @@ module QuandlFundamentals
 
     def delete_extracted_csv_database
       File.delete(csv_file_path)
+    end
+
+    def get_securities(url)
+      csv_contents = Net::HTTP.get(URI(url))
+      # csv_contents.encode!("UTF-8", "ISO-8859-1")   # CSI Data encodes their CSV files with the ISO-8859-1 character set, so we need to convert it to UTF-8
+      rows = CSV.parse(csv_contents, col_sep: "\t", headers: false, return_headers: false, skip_lines: /^(\s*,\s*)*$/)
+      if rows.first.join("\t") == TICKER_LIST_HEADER
+        rows.drop(1).map {|row| ::QuandlFundamentals::Security.new(*row.map{|s| s && s.strip }) }
+      else
+        raise "The securities list in #{url} doesn't conform to the expected row structure of: #{TICKER_LIST_HEADER}."
+      end
     end
 
   end

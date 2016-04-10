@@ -2,10 +2,11 @@ require 'csv'
 require 'zip'
 
 class QuandlEodImporter
+  APPROXIMATE_SEARCH_THRESHOLD = 0.7
+
   def initialize(quandl_eod_client)
-    @us_stock_exchanges = Exchange.us_stock_exchanges.to_a
-    @us_composite = Exchange.us_composite
     @client = quandl_eod_client
+    @similarity_measure = SimString::ComputeSimilarity.new(SimString::NGramBuilder.new(3), SimString::CosineMeasure.new)
   end
 
   def import
@@ -19,10 +20,15 @@ class QuandlEodImporter
     Application.logger.info("#{Time.now} - #{msg}")
   end
 
+  def error(msg)
+    Application.logger.error("#{Time.now} - #{msg}")
+  end
+
   def import_eod_bars_splits_and_dividends(all_eod_bars)
+    ticker_to_security = @client.securities.map {|s| [s.ticker, s] }.to_h
     all_eod_bars.each do |symbol, eod_bars|
       # eod_bars is an array of QuandlEod::EodBar objects; each has the following fields:
-      #   date,
+      #   date,   # this is an integer of the form yyyymmdd
       #   unadjusted_open,
       #   unadjusted_high,
       #   unadjusted_low,
@@ -36,61 +42,56 @@ class QuandlEodImporter
       #   adjusted_close,
       #   adjusted_volume
       if !eod_bars.empty?
-        security = lookup_security(symbol, eod_bars.first.date)
-        if security
-          most_recent_eod_bar = security.eod_bars_dataset.reverse_order(:date).first
-
-          if most_recent_eod_bar
-            import_missing_eod_bars_splits_and_dividends(security, eod_bars.select {|eod_bar| eod_bar.date > most_recent_eod_bar.date })
-          else
-            import_missing_eod_bars_splits_and_dividends(security, eod_bars)
-          end
-        else
+        securities = FindSecurity.us_stocks.all(symbol, eod_bars.first.date)
+        case securities.count
+        when 0
           log "Security symbol '#{symbol}' not found in any US exchange."
+        when 1
+          security = securities.first
+          import_eod_bars_splits_and_dividends_for_single_security(security, eod_bars)
+        else
+          quandl_eod_security = ticker_to_security[symbol]
+          if quandl_eod_security
+            db = SecurityNameDatabase.new
+            security_name_to_security = securities.map {|security| [security.name.downcase, security] }.to_h
+            securities.each {|security| db.add(security.name.downcase) }
+            matches = db.ranked_search(quandl_eod_security.name.downcase, APPROXIMATE_SEARCH_THRESHOLD)
+            case matches.count
+            when 0
+              security_references = securities.map do |security|
+                "#{security.name} - #{@similarity_measure.similarity(security.name.downcase, quandl_eod_security.name)}"
+              end
+              error "Error: Security symbol '#{symbol}' identifies multiple securities but none match the Quandl EOD security name '#{quandl_eod_security.name}':\n#{security_references.join("\n")}."
+            when 1
+              match = matches.first
+              matching_security = security_name_to_security[match.value]
+              import_eod_bars_splits_and_dividends_for_single_security(matching_security, eod_bars)
+            else
+              security_references = matches.map {|match| "#{match.value} - #{match.score}" }
+              error "Error: Security symbol '#{symbol}' identifies multiple matching securities. The following securities approximately match '#{quandl_eod_security.name}':\n#{security_references.join("\n")}."
+            end
+          else
+            security_references = securities.map(&:to_hash)
+            error "Error: Security symbol '#{symbol}' identifies multiple securities:\n#{security_references.join("\n")}."
+          end
         end
       end
     end
   end
 
-  # search for the security (1) in the appropriate composite exchange, (2) in the appropriate constituent (local) exchanges, and finally (3) in the catch-all exchange
-  def lookup_security(symbol, date)
-    # 1. search for the security in the appropriate composite exchange
-    begin
-      Security.first(symbol: symbol, exchange_id: @us_composite.id)
-    end ||
-    # 2. if not found in (1), search in the appropriate constituent (local) exchange(s)
-    begin
-      securities_in_local_exchanges = Security.where(symbol: symbol, exchange_id: @us_stock_exchanges.map(&:id)).to_a
-      case securities_in_local_exchanges.count
-      when 0
-        nil
-      when 1
-        securities_in_local_exchanges.first
-      else
-        # todo: figure out which exchange is preferred, and then return the security in the most preferred exchange
-        raise "Symbol #{symbol} is listed in multiple exchanges: #{securities_in_local_exchanges.map(&:exchange).map(&:label)}"
-      end
-    end ||
-    # 3. if not found in (1) or (2), search in the appropriate catch-all exchange(s)
-    begin
-      securities_in_catch_all_exchanges = Security.
-                                            where(symbol: symbol, exchange_id: Exchange.catch_all_stock.id).
-                                            where { (start_date <= date) & (end_date >= date) }.
-                                            to_a
-      case securities_in_catch_all_exchanges.count
-      when 0
-        nil
-      when 1
-        securities_in_catch_all_exchanges.first
-      else
-        raise "Multiple securities in the catch all exchange(s) traded under the symbol '#{symbol}' on #{date}: #{securities_in_catch_all_exchanges.inspect}"
-      end
+  def import_eod_bars_splits_and_dividends_for_single_security(security, eod_bars)
+    most_recent_eod_bar = security.eod_bars_dataset.reverse_order(:date).first
+
+    if most_recent_eod_bar
+      import_missing_eod_bars_splits_and_dividends(security, eod_bars.select {|eod_bar| eod_bar.date > most_recent_eod_bar.date })
+    else
+      import_missing_eod_bars_splits_and_dividends(security, eod_bars)
     end
   end
 
   # eod_bars is an array of QuandlEod::EodBar objects
   def import_missing_eod_bars_splits_and_dividends(security, eod_bars)
-    log "Importing #{eod_bars.count} EOD bars from Quandl EOD database for symbol #{security.symbol}."
+    log "Importing #{eod_bars.count} EOD bars from Quandl EOD database for security \"#{security.name}\"."
 
     eod_bars.each do |eod_bar|
       EodBar.create(

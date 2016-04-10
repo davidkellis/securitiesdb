@@ -1,14 +1,18 @@
-
 Sequel.migration do
   change do
 
     create_table :exchanges do
       primary_key :id
       String :label, size: 50, null: false
-      String :name, size: 255
+      String :name, size: 255, null: false
+      String :timezone_name, null: true         # this should be one of the string identifiers listed here: http://www.joda.org/joda-time/timezones.html
+      String :currency, size: 64, null: true    # this is an ISO 4217 currency code (see https://en.wikipedia.org/wiki/ISO_4217; e.g. USD, EUR, CHF, etc.)
+      Integer :market_open, null: true          # time is an integer of the form hhmmss; if nil, each security traded on exchange has its own open time
+      Integer :market_close, null: true         # time is an integer of the form hhmmss; if nil, each security traded on exchange has its own close time
+      Integer :trading_window_in_days, null: true  # if trading opens and closes on same day, then this is 1; otherwise, the trading window is the number of calendar days spanned by the open trading window (e.g. 2 if market closes on day following the market open); nil if each security has its own trading trading window
 
-      TrueClass :is_composite_exchange, null: false
-      foreign_key :composite_exchange_id, :exchanges, null: true
+      # TrueClass :is_composite_exchange, null: false
+      # foreign_key :composite_exchange_id, :exchanges, null: true
 
       index :id, unique: true
       index :label, unique: true
@@ -33,7 +37,7 @@ Sequel.migration do
     create_table :security_types do
       primary_key :id
       String :name, size: 255, null: false
-      String :market_sector, size: 255
+      String :classification, size: 255, null: true   # this is a broader classification than the security type itself; e.g. Commodity, Equity, Index, Currency, etc.
 
       index :id, unique: true
       index :name, unique: true
@@ -41,23 +45,65 @@ Sequel.migration do
 
     create_table :securities do
       primary_key :id
-      foreign_key :exchange_id, :exchanges, null: true
       foreign_key :security_type_id, :security_types, null: true
       foreign_key :industry_id, :industries, null: true
       foreign_key :sector_id, :sectors, null: true
-      String :name, size: 255
-      String :symbol, null: false, size: 15
-      String :figi, size: 12              # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
-      String :bbgid_composite, size: 12   # bloomberg global composite id - unique per security (but shared across exchanges within the same composite exchange)
-      Integer :csi_number, null: true     # CSI Number (identifier from csidata.com)
-
-      # TrueClass :primary_listing, null: false
-      Integer :start_date, null: true
-      Integer :end_date, null: true
+      String :name, size: 255, null: false
+      String :search_key, size: 255, null: false
 
       index :id, unique: true
-      index :figi, unique: true
-      index [:exchange_id, :symbol, :start_date]
+      index [:security_type_id, :name], unique: true
+    end
+
+    create_table :listed_securities do
+      primary_key :id
+      foreign_key :exchange_id, :exchanges, null: false
+      foreign_key :security_id, :securities, null: false
+      String :symbol, size: 15, null: false
+      Integer :listing_start_date, null: true
+      Integer :listing_end_date, null: true
+
+      # String :figi, size: 12, null: true              # figi = financial instrument global identifier - formerly bbgid - bloomberg global id - unique per security per exchange
+      # String :composite_figi, size: 12, null: true    # global composite id - unique per security (but shared across exchanges within the same composite exchange)
+      Integer :csi_number, null: true                 # CSI Number (identifier from csidata.com)
+
+      Integer :market_open, null: true              # time is an integer of the form hhmmss; if nil, this security is traded during the exchange's common open trading window
+      Integer :market_close, null: true             # time is an integer of the form hhmmss; if nil, this security is traded during the exchange's common open trading window
+      Integer :trading_window_in_days, null: true   # if trading opens and closes on same day, then this is 1; otherwise, the trading window is the number of calendar days spanned by the open trading window (e.g. 2 if market closes on day following the market open); nil if this security is traded during the exchange's common open trading window
+
+      index :id, unique: true
+      # index :figi, unique: true
+      index [:exchange_id, :symbol, :listing_start_date]
+    end
+
+    # An option is a 5-tuple (underlying security, expiration, strike, callOrPut, americanOrEuropean)
+    create_table :options do
+      primary_key :id
+      foreign_key :security_id, :securities, null: false
+      foreign_key :underlying_security_id, :securities, key: :id, null: false
+
+      Integer :expiration, null: false                    # date of the form yyyymmdd
+      String :type, fixed: true, size: 1, null: false     # call or put => C or P
+      BigDecimal :strike, size: [19, 4], null: false
+      String :style, fixed: true, size: 1, null: false    # American or European => A or E
+
+      index :id, unique: true
+      index [:underlying_security_id, :expiration, :strike, :type, :style], unique: true
+    end
+
+    create_table :eod_option_quotes do
+      primary_key :id
+      foreign_key :option_id, :options, null: false
+
+      Integer :date, null: false
+      BigDecimal :last, size: [19, 4], null: false
+      BigDecimal :bid, size: [19, 4], null: false
+      BigDecimal :ask, size: [19, 4], null: false
+      Integer :volume, null: false
+      Integer :open_interest, null: false
+
+      index :id, unique: true
+      index [:option_id, :date], unique: true
     end
 
     create_table :data_vendors do
@@ -88,10 +134,10 @@ Sequel.migration do
       primary_key :id
       foreign_key :security_id, :securities, null: false
       Integer :date, null: false
-      BigDecimal :open, :size=>[12, 2], null: false   # single-digit billions
-      BigDecimal :high, :size=>[12, 2], null: false   # single-digit billions
-      BigDecimal :low, :size=>[12, 2], null: false    # single-digit billions
-      BigDecimal :close, :size=>[12, 2], null: false  # single-digit billions
+      BigDecimal :open, :size => [19, 4], null: false
+      BigDecimal :high, :size => [19, 4], null: false
+      BigDecimal :low, :size => [19, 4], null: false
+      BigDecimal :close, :size => [19, 4], null: false
       Bignum :volume, null: false
 
       index :id, unique: true
@@ -111,9 +157,9 @@ Sequel.migration do
       foreign_key :security_id, :securities, null: false
       foreign_key :corporate_action_type_id, :corporate_action_types, null: false
       Integer :ex_date, null: false
-      Integer :declaration_date
-      Integer :record_date
-      Integer :payable_date
+      Integer :declaration_date, null: true
+      Integer :record_date, null: true
+      Integer :payable_date, null: true
 
       # NOTE:
       # 1. In accordance with the calculations at http://www.crsp.com/files/data_descriptions_guide_0.pdf,
@@ -142,7 +188,7 @@ Sequel.migration do
       primary_key :id
       String :label, size: 255, null: false
       String :name, size: 255, null: false
-      String :description, :text => true, null: true
+      String :description, text: true, null: true
 
       index :id, unique: true
       index :label, unique: true
@@ -151,7 +197,7 @@ Sequel.migration do
     create_table :fundamental_dimensions do
       primary_key :id
       String :name, size: 255, null: false
-      String :description, :text => true, null: true
+      String :description, text: true, null: true
 
       index :id, unique: true
       index :name, unique: true

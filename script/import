@@ -6,27 +6,29 @@ require "slop"
 
 def main
   opts = Slop.parse do |o|
-    o.bool '-a', '--all', "Download and import everything - exchanges, symbols, EOD data, splits, dividends, etc."
-    o.bool '-b', '--bsym', 'Import Bloomberg Open Symbology - Exchanges and Symbols'
-    o.bool '-c', '--csi', 'Import CSI Data - Exchanges and Symbols'
+    o.string '--config', "Config file path (default: #{Application::DEFAULT_CONFIG_FILE_PATH})"
+    o.bool '-a', '--all', "Download and import everything - exchanges, symbols, EOD data, splits, dividends, fundamentals, options, etc."
+    # o.bool '-b', '--bsym', 'Import Bloomberg Open Symbology - Exchanges and Symbols'
     o.bool '-d', '--download_dbs', "Download full database snapshots from Quandl."
-    o.bool '-e', '--exchanges', 'Import Bloomberg Open Symbology Exchanges'
+    o.bool '-c', '--csi', 'Import CSI Data - Exchanges and Symbols'
+    o.array '-o', '--options-zip-files', "Import historical option prices from the specified zip files downloaded from OptionData.net (see http://optiondata.net/)"
     o.bool '--quandl-bls', "Import BLS time series from Quandl's BLS databases (see https://www.quandl.com/data/BLSE/ and https://www.quandl.com/data/BLSP/)."
+    o.bool '--quandl-census', "Import data on the American people, places, and economy, from Quandl's USCENSUS database (see https://www.quandl.com/data/USCENSUS/)."
     o.bool '--quandl-eod', "Import EOD prices, splits, and dividends for US traded stocks from Quandl's EOD database (see https://www.quandl.com/data/EOD/)."
-    o.string '--quandl-eod-database', "Quandl EOD full database snapshot file path. (e.g. ./data/eod_database_20151222.zip)"
+    o.string '--quandl-eod-database', "Quandl EOD full database snapshot file path. (e.g. ./data/quandl_eod_database_20151222.zip)"
     o.bool '--quandl-fed', "Import economic statistics from Quandl's FED database (see https://www.quandl.com/data/FED/)."
     o.bool '--quandl-fred', "Import economic statistics from Quandl's FRED database (see https://www.quandl.com/data/FRED/)."
-    o.bool '--yahoo-eod', "Import EOD prices, splits, and dividends for stocks/ETFs/ETNs from Yahoo! Finance."
     o.bool '--quandl-fundamentals', "Import stock fundamentals for US traded stocks from Quandl's Core US Fundamentals database (see https://www.quandl.com/data/SF1/)."
-    o.string '--quandl-fundamentals-database', "Quandl Core US Fundamentals full database snapshot file path. (e.g. ./data/fundamentals_database_20151222.zip)"
-    o.bool '--quandl-census', "Import data on the American people, places, and economy, from Quandl's USCENSUS database (see https://www.quandl.com/data/USCENSUS/)."
+    o.string '--quandl-fundamentals-database', "Quandl Core US Fundamentals full database snapshot file path. (e.g. ./data/quandl_fundamentals_database_20151222.zip)"
     o.bool '--quandl-treasury', "Import Treasury rates, yield curve rates, debt, tax revenues, etc., from Quandl's USCENSUS database (see https://www.quandl.com/data/USTREASURY/)."
-    o.string '--config', 'Config file path'
+    o.bool '--yahoo-eod', "Import EOD prices, splits, and dividends for stocks/ETFs/ETNs from Yahoo! Finance."
     o.on '--help' do
       puts o
       exit
     end
   end
+
+  puts opts.to_hash
 
 
   Application.load(opts[:config] || Application::DEFAULT_CONFIG_FILE_PATH)
@@ -50,15 +52,13 @@ def main
     end
   end
 
-  if opts.bsym? || opts.exchanges? || opts.all?
-    importer = BsymExchangesImporter.new
-    importer.import
-  end
+  importer = ExchangesImporter.new
+  importer.import
 
-  if opts.bsym? || opts.all?
-    importer = BsymSecuritiesImporter.new
-    importer.import
-  end
+  # if opts.bsym? || opts.all?
+  #   importer = BsymSecuritiesImporter.new
+  #   importer.import
+  # end
 
   if opts.csi? || opts.all?
     importer = CsiDataImporter.new
@@ -105,6 +105,11 @@ def main
 
   if opts.quandl_treasury? || opts.all?
     importer = QuandlUsTreasuryImporter.new
+    importer.import
+  end
+
+  if opts.options_zip_files? || opts.all?
+    importer = OptionDataImporter.new(opts[:options_zip_files])
     importer.import
   end
 

@@ -1,3 +1,4 @@
+company_name_search_database_dir: data/security_name_dbs
 database:
   connection_string: postgres://username@localhost/database_name OR jdbc:postgresql://localhost/database_name?user=username
 log_level: info

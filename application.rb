@@ -35,6 +35,8 @@ class Application
       Database.connect(AppConfig.database.connection_string, database_logger)
 
       require_files
+
+      configure_security_name_database_factory
     end
 
     def configure_root_logger
@@ -66,6 +68,7 @@ class Application
     def require_files
       require_relative 'app/data_model'
       require_relative 'app/date'
+      require_relative 'app/security_name_database'
       require_relative 'app/stats'
       require_relative 'app/time_series_table'
       require_relative 'app/time'
@@ -76,13 +79,18 @@ class Application
       require_relative 'app/clients/quandl_fundamentals'
       require_relative 'app/clients/yahoofinance'
 
+      require_relative 'app/domain/create_security'
+      require_relative 'app/domain/currency'
+      require_relative 'app/domain/find_security'
       require_relative 'app/domain/lookup_fundamentals'
-      require_relative 'app/domain/lookup_security'
+      require_relative 'app/domain/time_zone'
 
       require_relative 'app/importers/quandl_time_series_importer'
-      require_relative 'app/importers/bsym_exchanges'
-      require_relative 'app/importers/bsym_securities'
+      # require_relative 'app/importers/bsym_exchanges'
+      # require_relative 'app/importers/bsym_securities'
       require_relative 'app/importers/csidata'
+      require_relative 'app/importers/exchanges'
+      require_relative 'app/importers/optiondata'
       require_relative 'app/importers/quandl_bls'
       require_relative 'app/importers/quandl_cme'
       require_relative 'app/importers/quandl_eod'
@@ -93,6 +101,10 @@ class Application
       require_relative 'app/importers/quandl_us_treasury'
       require_relative 'app/importers/yahoo_eod'
       require_relative 'app/importers/yahoo_splits_and_dividends'
+    end
+
+    def configure_security_name_database_factory
+      SecurityNameDatabaseFactory.configure(AppConfig.company_name_search_database_dir)
     end
 
   end

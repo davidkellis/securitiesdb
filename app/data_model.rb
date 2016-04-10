@@ -6,23 +6,15 @@ Sequel::Model.raise_on_save_failure = false
 POSTGRES_BIGINT_MAX = 2**63-1
 
 class Exchange < Sequel::Model
-  one_to_many :securities
+  one_to_many :listed_securities
+  many_to_many :securities, join_table: :listed_securities
 
   many_to_one :composite_exchange, class: self
   one_to_many :constituent_exchanges, key: :composite_exchange_id, class: self
 
-  # NYSE MKT - formerly the American Stock Exchange (AMEX)
-  def self.amex
-    @amex ||= where(label: "UA")
-  end
-
   # CBOE - Chicago Board Options Exchange
   def self.cboe
     @cboe ||= where(label: "CBOE")
-  end
-
-  def self.dow_jones
-    @dow ||= where(label: "DJI")
   end
 
   # see http://www.nasdaqomx.com/transactions/markets/nasdaq
@@ -31,64 +23,69 @@ class Exchange < Sequel::Model
   # - The NASDAQ Global Market (formerly the NASDAQ National Market) (bloomberg: UQ) - more exclusive than Capital Market, less exclusive than Global Select Market
   # - The NASDAQ Capital Market (formerly the NASDAQ SmallCap Market) (bloomberg: UR) - least exclusive Nasdaq Market
   def self.nasdaq
-    @nasdaq ||= where(label: ["UW", "UQ", "UR"])
+    @nasdaq ||= where(label: ["NASDAQ-CM", "NASDAQ-GM", "NASDAQ-GSM", "NASDAQ-CATCHALL"])
   end
 
   def self.nyse
-    @nyse ||= where(label: "UN")      # NYSE
+    @nyse ||= where(label: ["NYSE", "NYSE-CATCHALL"])          # NYSE
   end
 
   def self.nyse_arca
-    @nyse ||= where(label: "UP")      # NYSE Arca
+    @nyse ||= where(label: "NYSE-ARCA")     # NYSE Arca
+  end
+
+  def self.nyse_mkt
+    @amex ||= where(label: "NYSE-MKT")      # NYSE MKT - formerly the American Stock Exchange (AMEX)
   end
 
   def self.otc_bulletin_board
-    @otc_bb ||= where(label: "UU")
-  end
-
-  def self.otc
-    @otc ||= where(label: "UV")
+    @otc_bb ||= where(label: "OTCBB")
   end
 
   def self.otc_markets
-    @otc_markets ||= where(label: "PQ")
+    @otc_markets ||= where(label: ["OTC-QX", "OTC-QB", "OTC-CATCHALL"])
   end
 
-  def self.russell
-    @russell ||= where(label: ["RUSS", "RUSL"])
+  def self.pink_sheets
+    @pink_sheets ||= where(label: "OTC-PINK")
   end
 
   def self.us_stock_exchanges
-    amex.union(nasdaq).union(nyse)
+    nyse_mkt.
+      union(nasdaq).
+      union(nyse).
+      union(otc_markets).
+      union(otc_bulletin_board)
   end
 
   def self.us_exchanges
-    us_composite.constituent_exchanges +    # constituent_exchanges = ["PQ", "UA", "UB", "UC", "UD", "UE", "UF", "UL", "UM", "UN", "UO", "UP", "UQ", "UR", "UT", "UU", "UV", "UW", "UX", "VJ", "VK", "VY"]
-      cboe.to_a +
-      dow_jones.to_a +
-      russell.to_a +
-      [us_composite]
+    us_stock_exchanges.to_a +
+      cboe.to_a
   end
 
-  def self.us_composite
-    @us_composite ||= first(label: "US", is_composite_exchange: true)
+  def self.indices
+    @indices ||= first(label: "INDEX")
   end
 
-  def self.catch_all_index
-    @catch_all_index ||= first(label: "INDEX", is_composite_exchange: false)
-  end
-
-  def self.catch_all_mutual
-    @catch_all_mutual ||= first(label: "MUTUAL", is_composite_exchange: false)
-  end
-
-  def self.catch_all_stock
-    @catch_all_stock ||= first(label: "STOCK", is_composite_exchange: false)
-  end
-
-  def self.catch_all_etp
-    @catch_all_stock ||= first(label: "ETP", is_composite_exchange: false)
-  end
+  # def self.catch_all_mutual
+  #   @catch_all_mutual ||= first(label: "MUTUAL", is_composite_exchange: false)
+  # end
+  #
+  # def self.catch_all_stock
+  #   @catch_all_stock ||= first(label: "STOCK", is_composite_exchange: false)
+  # end
+  #
+  # def self.catch_all_etp
+  #   @catch_all_stock ||= first(label: "ETP", is_composite_exchange: false)
+  # end
+  #
+  # def self.catch_all_option
+  #   @catch_all_stock ||= first(label: "OPTION", is_composite_exchange: false)
+  # end
+  #
+  # def self.catch_all_future
+  #   @catch_all_stock ||= first(label: "FUTURE", is_composite_exchange: false)
+  # end
 end
 
 class Industry < Sequel::Model
@@ -115,13 +112,20 @@ class SecurityType < Sequel::Model
   end
 end
 
+class ListedSecurity < Sequel::Model
+  many_to_one :exchange
+  many_to_one :security
+end
+
 class Security < Sequel::Model
+  one_to_many :listed_securities
+  many_to_many :exchanges, join_table: :listed_securities
+
   one_to_many :eod_bars
   one_to_many :corporate_actions
   one_to_many :fundamental_datasets
   one_to_many :options, key: :underlying_security_id    # this is the relation "security is the underlying security for many options; option belongs to one underlying security"
 
-  many_to_one :exchange
   many_to_one :security_type
   many_to_one :industry
   many_to_one :sector
@@ -134,14 +138,16 @@ class Security < Sequel::Model
   # CBOE - Chicago Board Options Exchange
   def self.cboe
     qualify.
-      join(:exchanges, :id => :exchange_id).
-      where(Sequel.qualify(:exchanges, :label) => "CBOE")
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
+      where(:exchanges__label => "CBOE")
   end
 
-  def self.amex
+  def self.nyse_mkt
     qualify.
-      join(:exchanges, :id => :exchange_id).
-      where(Sequel.qualify(:exchanges, :label) => "UA")
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
+      where(:exchanges__label => "NYSE-MKT")
   end
 
   def self.nasdaq
@@ -151,37 +157,107 @@ class Security < Sequel::Model
     # - The NASDAQ Global Market (formerly the NASDAQ National Market) (bloomberg: UQ)
     # - The NASDAQ Capital Market (formerly the NASDAQ SmallCap Market) (bloomberg: UR)
     qualify.
-      join(:exchanges, :id => :exchange_id).
-      where(Sequel.qualify(:exchanges, :label) => ["UW", "UQ", "UR"])
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
+      where(:exchanges__label => ["NASDAQ-CM", "NASDAQ-GM", "NASDAQ-GSM"])
   end
 
   def self.nyse
     qualify.
-      join(:exchanges, :id => :exchange_id).
-      where(Sequel.qualify(:exchanges, :label) => "UN")   # NYSE (not NYSE Arca)
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
+      where(:exchanges__label => "NYSE")
   end
 
   def self.us_stock_exchanges
-    amex.union(nasdaq).union(nyse)
-  end
-
-  def self.us_composite
     qualify.
-      join(:exchanges, :id => :exchange_id).
-      where(Sequel.qualify(:exchanges, :label) => "US")
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
+      where(:exchanges__label => Exchange.us_stock_exchanges.map(&:label))
   end
 
   def self.us_exchanges
     qualify.
-      join(:exchanges, :id => :exchange_id).
-      where(Sequel.qualify(:exchanges, :label) => Exchange.us_exchanges.map(&:label))
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
+      where(:exchanges__label => Exchange.us_exchanges.map(&:label))
   end
 
   def self.indices
     qualify.
-      join(:security_types, :id => :security_type_id).
-      where(Sequel.qualify(:security_types, :market_sector) => "Index")
+      join(:listed_securities, :security_id => :id).
+      join(:exchanges, :id => :listed_securities__exchange_id).
+      where(:exchanges__label => "INDEX")
   end
+end
+
+class Option < Sequel::Model
+  many_to_one :security
+  many_to_one :underlying_security, class: Security
+
+  one_to_many :eod_option_quotes
+end
+
+class EodOptionQuote < Sequel::Model
+  many_to_one :option
+end
+
+class DataVendor < Sequel::Model
+  one_to_many :time_series
+end
+
+class UpdateFrequency < Sequel::Model
+  DAILY = "Daily"
+  WEEKLY = "Weekly"
+  MONTHLY = "Monthly"
+  QUARTERLY = "Quarterly"
+  YEARLY = "Yearly"
+  IRREGULAR = "Irregular"
+
+  one_to_many :time_series
+
+  def self.lookup(label)
+    @label_to_update_frequency ||= all.to_a.reduce({}) {|memo, update_frequency| memo[update_frequency.label] = update_frequency; memo }
+    @label_to_update_frequency[label]
+  end
+
+  def self.daily
+    lookup(DAILY)
+  end
+
+  def self.weekly
+    lookup(WEEKLY)
+  end
+
+  def self.monthly
+    lookup(MONTHLY)
+  end
+
+  def self.quarterly
+    lookup(QUARTERLY)
+  end
+
+  def self.yearly
+    lookup(YEARLY)
+  end
+
+  def self.irregular
+    lookup(IRREGULAR)
+  end
+end
+
+class TimeSeries < Sequel::Model
+  many_to_one :data_vendor
+  many_to_one :update_frequency
+
+  one_to_many :daily_observations
+  one_to_many :weekly_observations
+  one_to_many :monthly_observations
+  one_to_many :quarterly_observations
+  one_to_many :yearly_observations
+  one_to_many :irregular_observations
+
+  one_to_one :fundamental_dataset
 end
 
 class EodBar < Sequel::Model
@@ -313,67 +389,7 @@ class FundamentalDataset < Sequel::Model
   end
 end
 
-
 # time dimension-specific time series classes (e.g. daily, monthly, yearly)
-
-class DataVendor < Sequel::Model
-  one_to_many :time_series
-end
-
-class UpdateFrequency < Sequel::Model
-  DAILY = "Daily"
-  WEEKLY = "Weekly"
-  MONTHLY = "Monthly"
-  QUARTERLY = "Quarterly"
-  YEARLY = "Yearly"
-  IRREGULAR = "Irregular"
-
-  one_to_many :time_series
-
-  def self.lookup(label)
-    @label_to_update_frequency ||= all.to_a.reduce({}) {|memo, update_frequency| memo[update_frequency.label] = update_frequency; memo }
-    @label_to_update_frequency[label]
-  end
-
-  def self.daily
-    lookup(DAILY)
-  end
-
-  def self.weekly
-    lookup(WEEKLY)
-  end
-
-  def self.monthly
-    lookup(MONTHLY)
-  end
-
-  def self.quarterly
-    lookup(QUARTERLY)
-  end
-
-  def self.yearly
-    lookup(YEARLY)
-  end
-
-  def self.irregular
-    lookup(IRREGULAR)
-  end
-end
-
-class TimeSeries < Sequel::Model
-  many_to_one :data_vendor
-  many_to_one :update_frequency
-
-  one_to_many :daily_observations
-  one_to_many :weekly_observations
-  one_to_many :monthly_observations
-  one_to_many :quarterly_observations
-  one_to_many :yearly_observations
-  one_to_many :irregular_observations
-
-  one_to_one :fundamental_dataset
-end
-
 class DailyObservation < Sequel::Model
   many_to_one :time_series
 end
@@ -396,15 +412,4 @@ end
 
 class IrregularObservation < Sequel::Model
   many_to_one :time_series
-end
-
-class Option < Sequel::Model
-  many_to_one :security
-  many_to_one :underlying_security, class: Security
-
-  one_to_many :eod_option_quotes
-end
-
-class EodOptionQuote < Sequel::Model
-  many_to_one :option
 end

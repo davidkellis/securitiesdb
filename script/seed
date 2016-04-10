@@ -6,6 +6,8 @@ def seed
   CorporateActionType.create(name: "Cash Dividend")
   CorporateActionType.create(name: "Split")
 
+  DataVendor.create(name: "Quandl")
+
   FundamentalDimension.create(name: "INST", description: "Instantaneous point in time snapshot.")
   FundamentalDimension.create(name: "ARY", description: "As reported, annually.")
   FundamentalDimension.create(name: "ARQ", description: "As reported, quarterly.")
@@ -14,7 +16,7 @@ def seed
   FundamentalDimension.create(name: "MRQ", description: "Most-recent reported, quarterly.")
   FundamentalDimension.create(name: "MRT-Q", description: "Most-recent reported, trailing twelve months (TTM). Aggregated over quarterly observations.")
 
-  DataVendor.create(name: "Quandl")
+  SecurityType.create(name: "Equity Option", :classification => "Option")
 
   UpdateFrequency.create(label: "Daily")
   UpdateFrequency.create(label: "Weekly")

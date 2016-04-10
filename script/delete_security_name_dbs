@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+
+require_relative '../application'
+
+def delete_security_name_dbs
+  files_to_delete = Dir.glob(File.join(AppConfig.company_name_search_database_dir, "*.db"))
+  files_to_delete.each {|file_path| File.delete(file_path) }
+end
+
+def main
+  Application.load_config(ARGV.first || Application::DEFAULT_CONFIG_FILE_PATH)
+  puts "Deleting Security Names DBs."
+  delete_security_name_dbs
+end
+
+main if __FILE__ == $0
