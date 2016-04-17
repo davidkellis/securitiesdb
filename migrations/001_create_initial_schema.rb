@@ -11,9 +11,6 @@ Sequel.migration do
       Integer :market_close, null: true         # time is an integer of the form hhmmss; if nil, each security traded on exchange has its own close time
       Integer :trading_window_in_days, null: true  # if trading opens and closes on same day, then this is 1; otherwise, the trading window is the number of calendar days spanned by the open trading window (e.g. 2 if market closes on day following the market open); nil if each security has its own trading trading window
 
-      # TrueClass :is_composite_exchange, null: false
-      # foreign_key :composite_exchange_id, :exchanges, null: true
-
       index :id, unique: true
       index :label, unique: true
     end

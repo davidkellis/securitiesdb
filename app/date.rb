@@ -45,6 +45,23 @@ class Date
       Date.new(year, month, day)
     end
 
+    # timestamp is an integer of the form yyyymmddHHMMSS
+    def timestamp_to_datestamp(timestamp)
+      timestamp / 1000000
+    end
+
+    # timestamp is an integer of the form yyyymmddHHMMSS
+    # return an integer "monthstamp" of the form yyyymm
+    def timestamp_to_monthstamp(timestamp)
+      timestamp / 100000000
+    end
+
+    # datestamp is an integer of the form yyyymmdd
+    # return an integer "monthstamp" of the form yyyymm
+    def datestamp_to_monthstamp(datestamp)
+      datestamp / 100
+    end
+
     def date_series(start_date, end_date, incrementer_fn = ->(date){ date + 1 })
       series = []
       date = start_date

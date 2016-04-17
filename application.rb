@@ -70,7 +70,8 @@ class Application
       require_relative 'app/date'
       require_relative 'app/security_name_database'
       require_relative 'app/stats'
-      require_relative 'app/time_series_table'
+      # require_relative 'app/time_series_table'
+      require_relative 'app/time_series_table2'
       require_relative 'app/time'
 
       require_relative 'app/clients/bsym'
