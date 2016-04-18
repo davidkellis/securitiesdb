@@ -1,6 +1,8 @@
 require_relative '../application'
 
 class Lab1
+  using DateExtensions
+
   def eod_bars_to_close_column(security)
     security.eod_bars.map {|bar| [bar.date, bar.close.to_f] }
   end
@@ -43,30 +45,36 @@ class Lab1
       map {|fundamental_observation| [fundamental_observation.date, fundamental_observation.value.to_f] }
   end
 
-  def build_table
-    apple = LookupSecurity.us_stocks.run("AAPL")
-    google = LookupSecurity.us_stocks.run("GOOGL")
-    microsoft = LookupSecurity.us_stocks.run("MSFT")
-    exxon = LookupSecurity.us_stocks.run("XOM")
-    ge = LookupSecurity.us_stocks.run("GE")
-    jnj = LookupSecurity.us_stocks.run("JNJ")
-    amazon = LookupSecurity.us_stocks.run("AMZN")
-    wellsfargo = LookupSecurity.us_stocks.run("WFC")
-    berkshire_hathaway = LookupSecurity.us_stocks.run("BRK.B")
-    jpmorgan = LookupSecurity.us_stocks.run("JPM")
+  def run
+    apple = FindSecurity.us_stocks.one("AAPL")
+    google = FindSecurity.us_stocks.one("GOOGL")
+    microsoft = FindSecurity.us_stocks.one("MSFT")
+    exxon = FindSecurity.us_stocks.one("XOM")
+    ge = FindSecurity.us_stocks.one("GE")
+    jnj = FindSecurity.us_stocks.one("JNJ")
+    amazon = FindSecurity.us_stocks.one("AMZN")
+    wellsfargo = FindSecurity.us_stocks.one("WFC")
+    berkshire_hathaway = FindSecurity.us_stocks.one("BRK.B")
+    jpmorgan = FindSecurity.us_stocks.one("JPM")
 
-    xiv = LookupSecurity.us_stocks.run("XIV")
-    vxx = LookupSecurity.us_stocks.run("VXX")
+    xiv = FindSecurity.us_stocks.one("XIV")
+    vxx = FindSecurity.us_stocks.one("VXX")
 
-    vix = LookupSecurity.us_indices.run("VIX Index")
-    sp500 = LookupSecurity.us_indices.run("SPX Index")
+    vix = FindSecurity.us_indices.run("VIX Index")
+    sp500 = FindSecurity.us_indices.run("SPX Index")
 
 
     arq_attribute_dimension_triples = identify_arq_fundamentals_tracked_for(apple)
     inst_attribute_dimension_triples = identify_inst_fundamentals_tracked_for(apple)
 
+    business_days = Date.date_series_inclusive(
+      Date.next_business_day(Date.datestamp_to_date(20150101)),
+      Date.datestamp_to_date(20151231),
+      ->(date) { Date.next_business_day(date) }
+    ).map(&:to_datestamp)
+
     table = TimeSeriesTable.new
-    table.add_column("AAPL EOD", eod_bars_to_close_column(apple))
+    table.add_column(Variables::EodBarClose.new(apple))
     # table.add_column("AAPL EPS", fundamentals_column(apple, "EPS", "ARQ"), :most_recent_or_omit)
     arq_attribute_dimension_triples.each do |row|
       attribute_name = row[:attribute_name]
@@ -74,13 +82,13 @@ class Lab1
       dimension_name = row[:dimension_name]
       table.add_column("AAPL #{attribute_name}", fundamentals_column(apple, attribute_label, dimension_name), :most_recent_or_omit)
     end
-    puts table.to_csv(true, false)
+    puts table.save_csv("lab1.csv", business_days, true, false)
   end
 end
 
 def main
   Application.load(ARGV.first || Application::DEFAULT_CONFIG_FILE_PATH)
-  Lab1.new.build_table
+  Lab1.new.run
 end
 
 main if __FILE__ == $0

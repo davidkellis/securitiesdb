@@ -281,86 +281,77 @@ module Variables
 end
 
 class TimeSeriesTable
-  # missing_values_behavior must be one of the following symbols:
-  #   :omit - do not fill in missing values
-  #   :most_recent - fill in missing values using the most recent prior observation
-  #   :most_recent_or_omit - fill in missing values using the most recent prior observation; if most recent value doesn't exist, omit
-  Column = Struct.new(:variable, :missing_values_behavior)
-
-  attr_accessor :columns
-
   def initialize
-    @columns = []
+    @variables = []
   end
 
-  # missing_values_behavior must be one of the following symbols:
-  #   :omit - do not fill in missing values
-  #   :most_recent - fill in missing values using the most recent prior observation (if most recent value doesn't exist, use nil as placeholder)
-  #   :most_recent_or_omit - fill in missing values using the most recent prior observation; if most recent value doesn't exist, omit
-  def add_column(variable, missing_values_behavior = :omit)
-    @columns << Column.new(variable, missing_values_behavior)
+  def add_column(variable)
+    @variables << variable
   end
 
-  def each_row(time_series, slice_size = 30, &blk)
+  def each_nonfiltered_row(time_series, slice_size = 30, &blk)
     if block_given?
       time_series.each_slice(slice_size).each do |time_series_slice|
         time_series_slice.each do |time|
-          blk.call(@columns.map {|column| column.variable.observe(time) })
+          blk.call(@variables.map {|variable| variable.observe(time) })
         end
       end
     else
-      enum_for(:each_row, time_series, slice_size)
+      enum_for(:each_nonfiltered_row, time_series, slice_size)
     end
   end
 
-  def to_a(include_column_headers = true, include_date_column = true)
-    common_dates = identify_common_dates_among_core_columns
-    sorted_common_dates = common_dates.to_a.sort
-    table = each_row(sorted_common_dates).map do |datestamp|
-      row = columns.map do |column|
-        case column.missing_values_behavior
-        when :omit
-          column.date_value_map[datestamp]    # this is assured to return a value because sorted_common_dates only contains datestamps that are common to all the "none" columns
-        when :most_recent
-          most_recent_value(column.date_value_map, datestamp)
-        when :most_recent_or_omit
-          most_recent_value(column.date_value_map, datestamp) || break
+  # same as #each_row except that rows containing any nil values are filtered out
+  def each_filtered_row(time_series, slice_size = 30, &blk)
+    if block_given?
+      each_nonfiltered_row(time_series, slice_size) do |row|
+        blk.call(row) unless row.any?(&:nil?)
+      end
+    else
+      enum_for(:each_filtered_row, time_series, slice_size)
+    end
+  end
+
+  # row_enum_fn is either :each_nonfiltered_row, or :each_filtered_row
+  def each_row(time_series, include_column_headers = true, include_date_column = true, row_enum_fn = :each_filtered_row, &blk)
+    if block_given?
+      if include_column_headers
+        column_headers = @variables.map(&:name)
+        column_headers.unshift("Date") if include_date_column
+        blk.call(column_headers)
+      end
+      self.send(row_enum_fn, time_series).each do |row|
+        row.unshift(datestamp) if row && include_date_column
+        blk.call(row)
+      end
+    else
+      enum_for(:each_row, time_series, include_column_headers, include_date_column, row_enum_fn)
+    end
+  end
+
+  # row_enum_fn is either :each_nonfiltered_row, or :each_filtered_row
+  def to_a(time_series, include_column_headers = true, include_date_column = true, row_enum_fn = :each_filtered_row)
+    each_row(time_series, include_column_headers, include_date_column, row_enum_fn).to_a
+  end
+
+  # row_enum_fn is either :each_nonfiltered_row, or :each_filtered_row
+  def save_csv(filepath, time_series, include_column_headers = true, include_date_column = true, row_enum_fn = :each_filtered_row)
+    File.open(filepath, "w+") do |f|
+      first_row = include_column_headers
+      each_row(time_series, include_column_headers, include_date_column, row_enum_fn) do |row|
+        if first_row
+          # per page 2 of RFC-4180, "If double-quotes are used to enclose fields, then a double-quote appearing inside
+          # a field must be escaped by preceding it with another double quote."
+          header_row = row.
+            map {|col_value| col_value.gsub('"', '""') }.   # escape each double quote with a preceeding double quote
+            map {|col_value| "\"#{col_value}\"" }.          # enclose each header field within double quotes
+            join(',')
+          f.puts(header_row)
+          first_row = false
         else
-          raise "Unknown missing value behavior, \"#{column.missing_values_behavior}\", for column #{column.name}."
+          f.puts(row.join(','))
         end
       end
-      row.unshift(datestamp) if row && include_date_column
-      row
     end
-    table.compact!    # remove any rows that were nil due to being omitted
-    if include_column_headers
-      column_headers = columns.map {|column| column.variable.name }
-      column_headers.unshift("Date") if include_date_column
-      table.unshift(column_headers)
-    end
-    table
-  end
-
-  def to_csv(include_column_headers = true, include_date_column = true)
-    to_a(include_column_headers, include_date_column).map {|row| row.join(',') }.join("\n")
-  end
-
-  private
-
-  def no_fill_columns
-    columns.select {|col| col.missing_values_behavior == :omit }
-  end
-
-  def identify_common_dates_among_core_columns
-    core_columns = no_fill_columns
-    if !core_columns.empty?
-      first_key_set = core_columns.first.date_value_map.keySet.to_set
-      core_columns.reduce(first_key_set) {|common_key_set, column| common_key_set & column.date_value_map.keySet.to_set }
-    end
-  end
-
-  def most_recent_value(navigable_map, datestamp)
-    key = navigable_map.floorKey(datestamp)
-    navigable_map[key] if key
   end
 end
