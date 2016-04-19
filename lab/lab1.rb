@@ -44,7 +44,11 @@ class Lab1
   end
 
   def run
+    t1 = Time.now
+    puts "Starting. #{t1}"
+
     apple = FindSecurity.us_stocks.one("AAPL", 20150101)
+    google = FindSecurity.us_stocks.one("GOOG", 20150101)
 
     business_days = Date.date_series_inclusive(
       Date.next_business_day(Date.datestamp_to_date(20150101)),
@@ -54,6 +58,7 @@ class Lab1
 
     table = TimeSeriesTable.new
     table.add_column(Variables::EodBarClose.new(apple))
+    table.add_column(Variables::EodBarClose.new(google))
 
     # # table.add_column("AAPL EPS", fundamentals_column(apple, "EPS", "ARQ"), :most_recent_or_omit)
     # arq_attribute_dimension_triples.each do |row|
@@ -65,6 +70,9 @@ class Lab1
 
     pp table.to_a(business_days)
     # puts table.save_csv("lab1.csv", business_days, true, false)
+
+    t2 = Time.now
+    puts "Finished. #{Time.now} ; #{t2 - t1} seconds"
   end
 end
 
