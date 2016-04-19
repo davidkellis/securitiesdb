@@ -1,8 +1,6 @@
 require_relative '../application'
 
 class Lab1
-  using DateExtensions
-
   def eod_bars_to_close_column(security)
     security.eod_bars.map {|bar| [bar.date, bar.close.to_f] }
   end
@@ -46,43 +44,27 @@ class Lab1
   end
 
   def run
-    apple = FindSecurity.us_stocks.one("AAPL")
-    google = FindSecurity.us_stocks.one("GOOGL")
-    microsoft = FindSecurity.us_stocks.one("MSFT")
-    exxon = FindSecurity.us_stocks.one("XOM")
-    ge = FindSecurity.us_stocks.one("GE")
-    jnj = FindSecurity.us_stocks.one("JNJ")
-    amazon = FindSecurity.us_stocks.one("AMZN")
-    wellsfargo = FindSecurity.us_stocks.one("WFC")
-    berkshire_hathaway = FindSecurity.us_stocks.one("BRK.B")
-    jpmorgan = FindSecurity.us_stocks.one("JPM")
-
-    xiv = FindSecurity.us_stocks.one("XIV")
-    vxx = FindSecurity.us_stocks.one("VXX")
-
-    vix = FindSecurity.us_indices.run("VIX Index")
-    sp500 = FindSecurity.us_indices.run("SPX Index")
-
-
-    arq_attribute_dimension_triples = identify_arq_fundamentals_tracked_for(apple)
-    inst_attribute_dimension_triples = identify_inst_fundamentals_tracked_for(apple)
+    apple = FindSecurity.us_stocks.one("AAPL", 20150101)
 
     business_days = Date.date_series_inclusive(
       Date.next_business_day(Date.datestamp_to_date(20150101)),
       Date.datestamp_to_date(20151231),
       ->(date) { Date.next_business_day(date) }
-    ).map(&:to_datestamp)
+    ).map {|date| DateTime.to_timestamp(Date.date_at_time(date, 17, 0, 0)) }
 
     table = TimeSeriesTable.new
     table.add_column(Variables::EodBarClose.new(apple))
-    # table.add_column("AAPL EPS", fundamentals_column(apple, "EPS", "ARQ"), :most_recent_or_omit)
-    arq_attribute_dimension_triples.each do |row|
-      attribute_name = row[:attribute_name]
-      attribute_label = row[:attribute_label]
-      dimension_name = row[:dimension_name]
-      table.add_column("AAPL #{attribute_name}", fundamentals_column(apple, attribute_label, dimension_name), :most_recent_or_omit)
-    end
-    puts table.save_csv("lab1.csv", business_days, true, false)
+
+    # # table.add_column("AAPL EPS", fundamentals_column(apple, "EPS", "ARQ"), :most_recent_or_omit)
+    # arq_attribute_dimension_triples.each do |row|
+    #   attribute_name = row[:attribute_name]
+    #   attribute_label = row[:attribute_label]
+    #   dimension_name = row[:dimension_name]
+    #   table.add_column("AAPL #{attribute_name}", fundamentals_column(apple, attribute_label, dimension_name), :most_recent_or_omit)
+    # end
+
+    pp table.to_a(business_days)
+    # puts table.save_csv("lab1.csv", business_days, true, false)
   end
 end
 

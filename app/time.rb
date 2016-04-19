@@ -16,7 +16,7 @@ class DateTime
       sec = ts_str.slice(12, 2).to_i
       DateTime.new(year, month, day, hour, min, sec)
     end
-  
+
     def to_timestamp(t)
       ((((t.year * 100 + t.month) * 100 + t.day) * 100 + t.hour) * 100 + t.minute) * 100 + t.second
     end

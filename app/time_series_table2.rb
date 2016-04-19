@@ -43,22 +43,22 @@ class TimeSeriesMap
   end
 
   def latest_value_at_or_earlier_than(time)
-    key = navigable_map.floorKey(time)    # floorKey returns the greatest key less than or equal to the given key, or null if there is no such key.
+    key = @navigable_map.floorKey(time)    # floorKey returns the greatest key less than or equal to the given key, or null if there is no such key.
     @navigable_map[key] if key
   end
 
   def latest_value_earlier_than(time)
-    key = navigable_map.lowerKey(time)    # lowerKey returns the greatest key strictly less than the given key, or null if there is no such key.
+    key = @navigable_map.lowerKey(time)    # lowerKey returns the greatest key strictly less than the given key, or null if there is no such key.
     @navigable_map[key] if key
   end
 
   def earliest_value_at_or_later_than(time)
-    key = navigable_map.ceilingKey(time)  # ceilingKey returns the least key greater than or equal to the given key, or null if there is no such key.
+    key = @navigable_map.ceilingKey(time)  # ceilingKey returns the least key greater than or equal to the given key, or null if there is no such key.
     @navigable_map[key] if key
   end
 
   def earliest_value_later_than(time)
-    key = navigable_map.higherKey(time)   # higherKey returns the least key strictly greater than the given key, or null if there is no such key.
+    key = @navigable_map.higherKey(time)   # higherKey returns the least key strictly greater than the given key, or null if there is no such key.
     @navigable_map[key] if key
   end
 end
@@ -82,7 +82,7 @@ class EodBarLoader
   def get(security, datestamp)
     monthstamp = Date.datestamp_to_monthstamp(datestamp)  # datestamp is of the form yyyymmdd; monthstamp is of the form yyyymm
     key = cache_key(security, monthstamp)
-    cache.get(key) || load_eod_bars_into_cache(security, datestamp)
+    cache.get(key) || load_eod_bars_into_cache(security, monthstamp)
   end
 
   private
@@ -110,7 +110,7 @@ class EodBarLoader
   def find_eod_bars_in_month(security, monthstamp)
     first_datestamp_of_month = monthstamp * 100 + 1
     last_possible_datestamp_of_month = monthstamp * 100 + 31
-    security.eod_bars_dataset.where { (first_datestamp_of_month <= date) & (date <= last_possible_datestamp_of_month) }.to_a
+    security.eod_bars_dataset.where { (date >= first_datestamp_of_month) & (date <= last_possible_datestamp_of_month) }.to_a
   end
 end
 
@@ -184,14 +184,14 @@ module Variables
     end
 
     def name
-      "EOD Open #{@security.name} (id=#{security.id})"
+      "EOD Open #{@security.name} (id=#{@security.id})"
     end
 
     def observe(timestamp)
       datestamp = Date.timestamp_to_datestamp(timestamp)
       tsmap = EodBarLoader.get(@security, datestamp)
       eod_bar = tsmap.latest_value_at_or_earlier_than(datestamp)
-      eod_bar.open if eod_bar
+      eod_bar.open.to_f if eod_bar
     end
   end
 
@@ -201,14 +201,14 @@ module Variables
     end
 
     def name
-      "EOD High #{@security.name} (id=#{security.id})"
+      "EOD High #{@security.name} (id=#{@security.id})"
     end
 
     def observe(timestamp)
       datestamp = Date.timestamp_to_datestamp(timestamp)
       tsmap = EodBarLoader.get(@security, datestamp)
       eod_bar = tsmap.latest_value_at_or_earlier_than(datestamp)
-      eod_bar.high if eod_bar
+      eod_bar.high.to_f if eod_bar
     end
   end
 
@@ -218,14 +218,14 @@ module Variables
     end
 
     def name
-      "EOD Low #{@security.name} (id=#{security.id})"
+      "EOD Low #{@security.name} (id=#{@security.id})"
     end
 
     def observe(timestamp)
       datestamp = Date.timestamp_to_datestamp(timestamp)
       tsmap = EodBarLoader.get(@security, datestamp)
       eod_bar = tsmap.latest_value_at_or_earlier_than(datestamp)
-      eod_bar.low if eod_bar
+      eod_bar.low.to_f if eod_bar
     end
   end
 
@@ -235,14 +235,14 @@ module Variables
     end
 
     def name
-      "EOD Close #{@security.name} (id=#{security.id})"
+      "EOD Close #{@security.name} (id=#{@security.id})"
     end
 
     def observe(timestamp)
       datestamp = Date.timestamp_to_datestamp(timestamp)
       tsmap = EodBarLoader.get(@security, datestamp)
       eod_bar = tsmap.latest_value_at_or_earlier_than(datestamp)
-      eod_bar.close if eod_bar
+      eod_bar.close.to_f if eod_bar
     end
   end
 
@@ -252,7 +252,7 @@ module Variables
     end
 
     def name
-      "EOD Volume #{@security.name} (id=#{security.id})"
+      "EOD Volume #{@security.name} (id=#{@security.id})"
     end
 
     def observe(timestamp)
@@ -289,11 +289,13 @@ class TimeSeriesTable
     @variables << variable
   end
 
+  # blk is a block that takes 2 arguments: time and row
   def each_nonfiltered_row(time_series, slice_size = 30, &blk)
     if block_given?
       time_series.each_slice(slice_size).each do |time_series_slice|
         time_series_slice.each do |time|
-          blk.call(@variables.map {|variable| variable.observe(time) })
+          row = @variables.map {|variable| variable.observe(time) }
+          blk.call(time, row)
         end
       end
     else
@@ -301,11 +303,12 @@ class TimeSeriesTable
     end
   end
 
-  # same as #each_row except that rows containing any nil values are filtered out
+  # same as #each_nonfiltered_row except that rows containing any nil values are filtered out
+  # blk is a block that takes 2 arguments: time and row
   def each_filtered_row(time_series, slice_size = 30, &blk)
     if block_given?
-      each_nonfiltered_row(time_series, slice_size) do |row|
-        blk.call(row) unless row.any?(&:nil?)
+      each_nonfiltered_row(time_series, slice_size) do |time, row|
+        blk.call(time, row) unless row.any?(&:nil?)
       end
     else
       enum_for(:each_filtered_row, time_series, slice_size)
@@ -313,6 +316,7 @@ class TimeSeriesTable
   end
 
   # row_enum_fn is either :each_nonfiltered_row, or :each_filtered_row
+  # blk is a block that takes 1 argument: row
   def each_row(time_series, include_column_headers = true, include_date_column = true, row_enum_fn = :each_filtered_row, &blk)
     if block_given?
       if include_column_headers
@@ -320,8 +324,8 @@ class TimeSeriesTable
         column_headers.unshift("Date") if include_date_column
         blk.call(column_headers)
       end
-      self.send(row_enum_fn, time_series).each do |row|
-        row.unshift(datestamp) if row && include_date_column
+      self.send(row_enum_fn, time_series) do |time, row|
+        row.unshift(time) if row && include_date_column
         blk.call(row)
       end
     else

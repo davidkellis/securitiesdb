@@ -62,6 +62,19 @@ class Date
       datestamp / 100
     end
 
+    def date_at_time(date, hour, minute, second)
+      DateTime.new(date.year, date.month, date.day, hour, minute, second)
+    end
+
+    def date_at_local_time(date, local_time)
+      date_at_time(date, local_time.hour, local_time.minute, local_time.second)
+    end
+
+    def date_to_datestamp(date)
+      (date.year * 100 + date.month) * 100 + date.day
+    end
+
+
     def date_series(start_date, end_date, incrementer_fn = ->(date){ date + 1 })
       series = []
       date = start_date
@@ -499,15 +512,15 @@ end
 module DateExtensions
   refine Date do
     def at_time(hour, minute, second)
-      DateTime.new(year, month, day, hour, minute, second)
+      Date.date_at_time(self, hour, minute, second)
     end
 
     def at_local_time(local_time)
-      at_time(local_time.hour, local_time.minute, local_time.second)
+      Date.date_at_local_time(date, local_time)
     end
 
     def to_datestamp
-      (year * 100 + month) * 100 + day
+      Date.date_to_datestamp(date)
     end
   end
 end
