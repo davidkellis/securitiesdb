@@ -49,6 +49,10 @@ class Lab1
 
     apple = FindSecurity.us_stocks.one("AAPL", 20150101)
     google = FindSecurity.us_stocks.one("GOOG", 20150101)
+    microsoft = FindSecurity.us_stocks.one("MSFT", 20150101)
+    exxon = FindSecurity.us_stocks.one("XOM", 20150101)
+    ge = FindSecurity.us_stocks.one("GE", 20150101)
+
 
     business_days = Date.date_series_inclusive(
       Date.next_business_day(Date.datestamp_to_date(20150101)),
@@ -59,6 +63,9 @@ class Lab1
     table = TimeSeriesTable.new
     table.add_column(Variables::EodBarClose.new(apple))
     table.add_column(Variables::EodBarClose.new(google))
+    table.add_column(Variables::EodBarClose.new(microsoft))
+    table.add_column(Variables::EodBarClose.new(exxon))
+    table.add_column(Variables::EodBarClose.new(ge))
 
     # # table.add_column("AAPL EPS", fundamentals_column(apple, "EPS", "ARQ"), :most_recent_or_omit)
     # arq_attribute_dimension_triples.each do |row|
