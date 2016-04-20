@@ -64,7 +64,7 @@ class Exchange < Sequel::Model
   end
 
   def self.indices
-    @indices ||= first(label: "INDEX")
+    @indices ||= where(label: "INDEX").to_a
   end
 
   # def self.catch_all_mutual

@@ -175,6 +175,21 @@ class Variable
   def observe(timestamp)
     raise "#{self.class.name}#observe not implemented."
   end
+
+  def memoized(observation_count)
+    MemoizedVariable.new(self, observation_count)
+  end
+end
+
+class MemoizedVariable < Variable
+  def initialize(variable, observation_count)
+    @variable = variable
+    @cache = LruCache.new(observation_count)
+  end
+
+  def observe(timestamp)
+    @cache.get_or_set(timestamp) { @variable.observe(timestamp) }
+  end
 end
 
 module Variables
@@ -264,6 +279,7 @@ module Variables
   end
 
   class DailyTimeSeriesObservation < Variable
+    # time_series is a TimeSeries
     def initialize(time_series)
       @time_series = time_series
     end
@@ -276,6 +292,20 @@ module Variables
       datestamp = Date.timestamp_to_datestamp(timestamp)
       tsmap = TimeSeriesDailyObservationLoader.get(@time_series, datestamp)
       tsmap.latest_value_at_or_earlier_than(datestamp)
+    end
+  end
+
+  class FirstDifference < Variable
+    # previous_time_fn is a function (currentTime) -> previousTime
+    def initialize(variable, previous_time_fn)
+      @variable = variable
+      @previous_time_fn = previous_time_fn
+    end
+
+    def observe(timestamp)
+      current_observation = @variable.observe(timestamp)
+      previous_observation = @variable.observe(@previous_time_fn.call(timestamp))
+      current_observation - previous_observation
     end
   end
 end

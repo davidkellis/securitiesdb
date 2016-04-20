@@ -53,6 +53,12 @@ class Lab1
     exxon = FindSecurity.us_stocks.one("XOM", 20150101)
     ge = FindSecurity.us_stocks.one("GE", 20150101)
 
+    xiv = FindSecurity.us_stocks.one("XIV", 20150101)
+    vxx = FindSecurity.us_stocks.one("VXX", 20150101)
+
+    # vix = FindSecurity.us_indices.one("VIX Index", 20150101)
+    # sp500 = FindSecurity.us_indices.one("SPX Index", 20150101)
+
 
     business_days = Date.date_series_inclusive(
       Date.next_business_day(Date.datestamp_to_date(20150101)),
@@ -61,6 +67,19 @@ class Lab1
     ).map {|date| DateTime.to_timestamp(Date.date_at_time(date, 17, 0, 0)) }
 
     table = TimeSeriesTable.new
+
+    simple_variables = [
+      Variables::EodBarClose.new(apple).memoized(20),
+      Variables::EodBarClose.new(google).memoized(20),
+      Variables::EodBarClose.new(microsoft).memoized(20),
+      Variables::EodBarClose.new(exxon).memoized(20),
+      Variables::EodBarClose.new(ge).memoized(20)
+    ]
+
+    derivative_variable_builders = [
+      ->(variable) { FirstDifference.new(variable, ->(time){ Date.prior_business_day() }) }   # todo: finish this
+    ]
+
     table.add_column(Variables::EodBarClose.new(apple))
     table.add_column(Variables::EodBarClose.new(google))
     table.add_column(Variables::EodBarClose.new(microsoft))
