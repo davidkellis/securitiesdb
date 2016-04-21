@@ -187,6 +187,10 @@ class MemoizedVariable < Variable
     @cache = LruCache.new(observation_count)
   end
 
+  def name
+    @variable.name
+  end
+
   def observe(timestamp)
     @cache.get_or_set(timestamp) { @variable.observe(timestamp) }
   end
@@ -295,17 +299,22 @@ module Variables
     end
   end
 
-  class FirstDifference < Variable
+  class LookbackDifference < Variable
     # previous_time_fn is a function (currentTime) -> previousTime
-    def initialize(variable, previous_time_fn)
+    def initialize(variable, variable_name_prefix, previous_time_fn)
       @variable = variable
+      @variable_name_prefix = variable_name_prefix
       @previous_time_fn = previous_time_fn
+    end
+
+    def name
+      "#{@variable_name_prefix} #{@variable.name}"
     end
 
     def observe(timestamp)
       current_observation = @variable.observe(timestamp)
       previous_observation = @variable.observe(@previous_time_fn.call(timestamp))
-      current_observation - previous_observation
+      (current_observation - previous_observation) if current_observation && previous_observation
     end
   end
 end

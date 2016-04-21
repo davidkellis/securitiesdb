@@ -77,14 +77,28 @@ class Lab1
     ]
 
     derivative_variable_builders = [
-      ->(variable) { FirstDifference.new(variable, ->(time){ Date.prior_business_day() }) }   # todo: finish this
+      ->(variable) {
+        Variables::LookbackDifference.new(variable, "1-day difference in", ->(timestamp) {
+          datetime = DateTime.timestamp_to_dt(timestamp)
+          DateTime.to_timestamp(Date.prior_business_day(datetime))
+        })
+      }
     ]
 
-    table.add_column(Variables::EodBarClose.new(apple))
-    table.add_column(Variables::EodBarClose.new(google))
-    table.add_column(Variables::EodBarClose.new(microsoft))
-    table.add_column(Variables::EodBarClose.new(exxon))
-    table.add_column(Variables::EodBarClose.new(ge))
+    simple_variables.each do |simple_variable|
+      table.add_column(simple_variable)
+
+      derivative_variable_builders.each do |derivative_variable_builder_fn|
+        variable = derivative_variable_builder_fn.call(simple_variable)
+        table.add_column(variable)
+      end
+    end
+
+    # table.add_column(Variables::EodBarClose.new(apple))
+    # table.add_column(Variables::EodBarClose.new(google))
+    # table.add_column(Variables::EodBarClose.new(microsoft))
+    # table.add_column(Variables::EodBarClose.new(exxon))
+    # table.add_column(Variables::EodBarClose.new(ge))
 
     # # table.add_column("AAPL EPS", fundamentals_column(apple, "EPS", "ARQ"), :most_recent_or_omit)
     # arq_attribute_dimension_triples.each do |row|
@@ -94,7 +108,9 @@ class Lab1
     #   table.add_column("AAPL #{attribute_name}", fundamentals_column(apple, attribute_label, dimension_name), :most_recent_or_omit)
     # end
 
-    pp table.to_a(business_days)
+    table.to_a(business_days).each do |row|
+      puts row.inspect
+    end
     # puts table.save_csv("lab1.csv", business_days, true, false)
 
     t2 = Time.now
