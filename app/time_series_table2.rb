@@ -317,6 +317,44 @@ module Variables
       (current_observation - previous_observation) if current_observation && previous_observation
     end
   end
+
+  class LookbackRatio < Variable
+    # previous_time_fn is a function (currentTime) -> previousTime
+    def initialize(variable, variable_name_prefix, previous_time_fn)
+      @variable = variable
+      @variable_name_prefix = variable_name_prefix
+      @previous_time_fn = previous_time_fn
+    end
+
+    def name
+      "#{@variable_name_prefix} #{@variable.name}"
+    end
+
+    def observe(timestamp)
+      current_observation = @variable.observe(timestamp)
+      previous_observation = @variable.observe(@previous_time_fn.call(timestamp))
+      (current_observation / previous_observation) if current_observation && previous_observation && previous_observation != 0
+    end
+  end
+
+  class LookaheadRatio < Variable
+    # future_time_fn is a function (currentTime) -> futureTime
+    def initialize(variable, variable_name_prefix, future_time_fn)
+      @variable = variable
+      @variable_name_prefix = variable_name_prefix
+      @future_time_fn = future_time_fn
+    end
+
+    def name
+      "#{@variable_name_prefix} #{@variable.name}"
+    end
+
+    def observe(timestamp)
+      current_observation = @variable.observe(timestamp)
+      future_observation = @variable.observe(@future_time_fn.call(timestamp))
+      (future_observation / current_observation) if current_observation && future_observation && current_observation != 0
+    end
+  end
 end
 
 class TimeSeriesTable

@@ -56,8 +56,10 @@ class Lab1
     xiv = FindSecurity.us_stocks.one("XIV", 20150101)
     vxx = FindSecurity.us_stocks.one("VXX", 20150101)
 
-    # vix = FindSecurity.us_indices.one("VIX Index", 20150101)
-    # sp500 = FindSecurity.us_indices.one("SPX Index", 20150101)
+    vix = FindSecurity.us_indices.one("VIX", 20150101)    # no EodBars
+    sp500 = FindSecurity.us_indices.one("SPX", 20150101)  # no EodBars
+
+    spy = FindSecurity.us_stocks.one("SPY", 20150101)     # no EodBars
 
 
     business_days = Date.date_series_inclusive(
@@ -68,31 +70,85 @@ class Lab1
 
     table = TimeSeriesTable.new
 
-    simple_variables = [
-      Variables::EodBarClose.new(apple).memoized(20),
-      Variables::EodBarClose.new(google).memoized(20),
-      Variables::EodBarClose.new(microsoft).memoized(20),
-      Variables::EodBarClose.new(exxon).memoized(20),
-      Variables::EodBarClose.new(ge).memoized(20)
+    simple_predictive_variables = [
+      Variables::EodBarClose.new(apple).memoized(30),
+      Variables::EodBarClose.new(google).memoized(30),
+      Variables::EodBarClose.new(microsoft).memoized(30),
+      Variables::EodBarClose.new(exxon).memoized(30),
+      Variables::EodBarClose.new(ge).memoized(30)
     ]
 
-    derivative_variable_builders = [
+    derivative_predictor_variable_builders = [
       ->(variable) {
-        Variables::LookbackDifference.new(variable, "1-day difference in", ->(timestamp) {
+        Variables::LookbackDifference.new(variable, "1d difference", ->(timestamp) {
           datetime = DateTime.timestamp_to_dt(timestamp)
           DateTime.to_timestamp(Date.prior_business_day(datetime))
+        })
+      },
+      ->(variable) {
+        Variables::LookbackRatio.new(variable, "1d return", ->(timestamp) {
+          datetime = DateTime.timestamp_to_dt(timestamp)
+          DateTime.to_timestamp(Date.prior_business_day(datetime))
+        })
+      },
+      ->(variable) {
+        Variables::LookbackRatio.new(variable, "1w return", ->(timestamp) {
+          datetime = DateTime.timestamp_to_dt(timestamp)
+          DateTime.to_timestamp(datetime - 7)
+        })
+      },
+      ->(variable) {
+        Variables::LookbackRatio.new(variable, "4w return", ->(timestamp) {
+          datetime = DateTime.timestamp_to_dt(timestamp)
+          DateTime.to_timestamp(datetime - 28)
         })
       }
     ]
 
-    simple_variables.each do |simple_variable|
+    simple_predictive_variables.each do |simple_variable|
       table.add_column(simple_variable)
 
-      derivative_variable_builders.each do |derivative_variable_builder_fn|
+      derivative_predictor_variable_builders.each do |derivative_variable_builder_fn|
         variable = derivative_variable_builder_fn.call(simple_variable)
         table.add_column(variable)
       end
     end
+
+
+    simple_response_variables = [
+      Variables::EodBarClose.new(xiv).memoized(30),
+    ]
+
+    derivative_response_variable_builders = [
+      ->(variable) {
+        Variables::LookaheadRatio.new(variable, "1d future return", ->(timestamp) {
+          datetime = DateTime.timestamp_to_dt(timestamp)
+          DateTime.to_timestamp(Date.next_business_day(datetime))
+        })
+      },
+      ->(variable) {
+        Variables::LookaheadRatio.new(variable, "1w future return", ->(timestamp) {
+          datetime = DateTime.timestamp_to_dt(timestamp)
+          DateTime.to_timestamp(datetime + 7)
+        })
+      },
+      ->(variable) {
+        Variables::LookaheadRatio.new(variable, "4w future return", ->(timestamp) {
+          datetime = DateTime.timestamp_to_dt(timestamp)
+          DateTime.to_timestamp(datetime + 28)
+        })
+      }
+    ]
+
+    simple_response_variables.each do |simple_variable|
+      table.add_column(simple_variable)
+
+      derivative_response_variable_builders.each do |derivative_variable_builder_fn|
+        variable = derivative_variable_builder_fn.call(simple_variable)
+        table.add_column(variable)
+      end
+    end
+
 
     # table.add_column(Variables::EodBarClose.new(apple))
     # table.add_column(Variables::EodBarClose.new(google))

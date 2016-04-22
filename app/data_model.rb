@@ -31,7 +31,7 @@ class Exchange < Sequel::Model
   end
 
   def self.nyse_arca
-    @nyse ||= where(label: "NYSE-ARCA")     # NYSE Arca
+    @nyse_arca ||= where(label: "NYSE-ARCA")     # NYSE Arca
   end
 
   def self.nyse_mkt
@@ -54,6 +54,7 @@ class Exchange < Sequel::Model
     nyse_mkt.
       union(nasdaq).
       union(nyse).
+      union(nyse_arca).
       union(otc_markets).
       union(otc_bulletin_board)
   end
