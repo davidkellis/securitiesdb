@@ -1,7 +1,7 @@
 securitiesdb
 ============
 
-This project populates a local Postgres database with security symbols, un-adjusted EOD data, splits, dividends, and fundamental data.
+This project populates a local Postgres database with security symbols, un-adjusted EOD data, splits, dividends, company fundamentals, and options data. Economic indicators - employment and labor statistics, inflation rates, interest rates, exchange rates, imports/exports, domestic production stats, treasury rates, debt, tax revenues, etc. - are also available.
 
 Michael Halls-Moore, the guy behind [quantstart.com](https://www.quantstart.com), described and popularized the idea of a securities master database in his two
 excellent articles - [(1) Securities Master Databases for Algorithmic Trading](https://www.quantstart.com/articles/Securities-Master-Databases-for-Algorithmic-Trading) and [(2) Securities Master Database with MySQL and Python](https://www.quantstart.com/articles/Securities-Master-Database-with-MySQL-and-Python). This project is an implementation of his idea of a securities master database.
