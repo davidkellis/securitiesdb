@@ -166,9 +166,9 @@ Sequel.migration do
       # http://www.crsp.com/products/documentation/daily-and-monthly-time-series, and
       # https://www.quandl.com/data/EOD/documentation/methodology,
       # split and dividend adjustment factors are decimal values such that
-      # when unadjusted price and dividend payout values are divided by the appropriate cumulative adjustment factor yield an adjusted price or dividend payout value,
+      # unadjusted price and dividend payout values divided by the appropriate cumulative adjustment factor yield an adjusted price or dividend payout value,
       # and
-      # when unadjusted share and volume values are multiplied by the appropriate cumulative adjustment factor yield an adjusted share or volume value.
+      # unadjusted share and volume values multiplied by the appropriate cumulative adjustment factor yield an adjusted share or volume value.
       # 2. Cumlative adjustment factors may be computed by multiplying consecutive adjustment factors.
       #
       # NOTE:

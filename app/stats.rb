@@ -16,7 +16,7 @@ module Stats
     # s_k = s_kMinus1 + (x_k - m_kMinus1) * (x_k - m_k)
     def push(x)
       @k += 1
-    
+
       @max = @max.nil? || x > @max ? x : @max
       @min = @min.nil? || x < @min ? x : @min
 
@@ -55,22 +55,22 @@ module Stats
     def standard_deviation
       Math.sqrt(variance)
     end
-  
+
     def max
       @max
     end
-  
+
     def min
       @min
     end
   end
-  
+
   # This implementation is based on http://en.wikipedia.org/wiki/Quantiles#Estimating_the_quantiles_of_a_population
   # For additional information, see:
   # http://www.stanford.edu/class/archive/anthsci/anthsci192/anthsci192.1064/handouts/calculating%20percentiles.pdf
   # http://en.wikipedia.org/wiki/Percentile
   # http://www.mathworks.com/help/stats/quantiles-and-percentiles.html
-  # 
+  #
   # hFn is the function:
   #   (n: decimal) -> (p: decimal) -> decimal
   #   such that hFn returns a 1-based real-valued index (which may or may not be a whole-number) into the array of sorted values in xs
@@ -186,7 +186,7 @@ module Stats
     end
     sampling_distributions
   end
-  
+
   def self.sample_mean(sample)
     n = sample.count
     sample.reduce(:+) / n.to_f

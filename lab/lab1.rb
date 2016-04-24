@@ -137,6 +137,12 @@ class Lab1
           datetime = DateTime.timestamp_to_dt(timestamp)
           DateTime.to_timestamp(datetime + 28)
         })
+      },
+      ->(variable) {
+        Variables::PercentileLookaheadRatio.new(variable, "50th %ile 1w future returns", 0.5, 7, ->(timestamp) {
+          datetime = DateTime.timestamp_to_dt(timestamp)
+          DateTime.to_timestamp(Date.next_business_day(datetime))
+        })
       }
     ]
 
