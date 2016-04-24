@@ -66,13 +66,18 @@ class Application
     end
 
     def require_files
+      require_relative 'app/corporate_action_loader'
       require_relative 'app/data_model'
       require_relative 'app/date'
+      require_relative 'app/eod_bar_loader'
+      require_relative 'app/lru_cache'
       require_relative 'app/security_name_database'
       require_relative 'app/stats'
-      # require_relative 'app/time_series_table'
-      require_relative 'app/time_series_table2'
+      require_relative 'app/time_series_map'
+      require_relative 'app/time_series_observation_loader'
+      require_relative 'app/time_series_table'
       require_relative 'app/time'
+      require_relative 'app/variables'
 
       require_relative 'app/clients/bsym'
       require_relative 'app/clients/csidata'

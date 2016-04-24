@@ -153,10 +153,10 @@ Sequel.migration do
       primary_key :id
       foreign_key :security_id, :securities, null: false
       foreign_key :corporate_action_type_id, :corporate_action_types, null: false
-      Integer :ex_date, null: false
-      Integer :declaration_date, null: true
-      Integer :record_date, null: true
-      Integer :payable_date, null: true
+      Integer :ex_date, null: false           # date of the form yyyymmdd
+      Integer :declaration_date, null: true   # date of the form yyyymmdd
+      Integer :record_date, null: true        # date of the form yyyymmdd
+      Integer :payable_date, null: true       # date of the form yyyymmdd
 
       # NOTE:
       # 1. In accordance with the calculations at http://www.crsp.com/files/data_descriptions_guide_0.pdf,
