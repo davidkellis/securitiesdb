@@ -263,6 +263,12 @@ end
 
 class EodBar < Sequel::Model
   many_to_one :security
+
+  def adjusted_close(frame_of_reference_datestamp)
+    corporate_action_tsm = CorporateActionLoader.get(self.security)
+    cumulative_adjustment_factor = CorporateActionAdjustment.calculate_cumulative_adjustment_factor(self.security, self.date, frame_of_reference_datestamp)
+    CorporateActionAdjustment.adjust_price(self.close.to_f, cumulative_adjustment_factor)
+  end
 end
 
 class CorporateActionType < Sequel::Model

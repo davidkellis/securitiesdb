@@ -153,7 +153,7 @@ Sequel.migration do
       primary_key :id
       foreign_key :security_id, :securities, null: false
       foreign_key :corporate_action_type_id, :corporate_action_types, null: false
-      Integer :ex_date, null: false           # date of the form yyyymmdd
+      Integer :ex_date, null: false           # date of the form yyyymmdd - this is the first date in which the corporate action has taken effect
       Integer :declaration_date, null: true   # date of the form yyyymmdd
       Integer :record_date, null: true        # date of the form yyyymmdd
       Integer :payable_date, null: true       # date of the form yyyymmdd

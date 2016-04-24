@@ -115,8 +115,11 @@ module Variables
   end
 
   class AdjustedEodBarClose < Variable
-    def initialize(security)
+    # frame_of_reference_datestamp is the datestamp from which we are looking back at historical observations of <security>
+    # frame_of_reference_datestamp will usually be "today", or the most recent date we have data on <security>
+    def initialize(security, frame_of_reference_datestamp)
       @security = security
+      @frame_of_reference_datestamp = frame_of_reference_datestamp
     end
 
     def name
@@ -124,10 +127,17 @@ module Variables
     end
 
     def observe(timestamp)
-      datestamp = Date.timestamp_to_datestamp(timestamp)
-      tsmap = EodBarLoader.get(@security, datestamp)
-      eod_bar = tsmap.latest_value_at_or_earlier_than(datestamp)
-      eod_bar.close.to_f if eod_bar
+      observation_datestamp = Date.timestamp_to_datestamp(timestamp)
+      eod_bar_tsm = EodBarLoader.get(@security, observation_datestamp)
+      corporate_action_tsm = CorporateActionLoader.get(@security)
+
+      # look up historical eod bar observation
+      eod_bar = eod_bar_tsm.latest_value_at_or_earlier_than(observation_datestamp)
+
+      if eod_bar
+        cumulative_adjustment_factor = CorporateActionAdjustment.calculate_cumulative_adjustment_factor(@security, eod_bar.date, @frame_of_reference_datestamp)
+        CorporateActionAdjustment.adjust_price(eod_bar.close.to_f, cumulative_adjustment_factor).to_f
+      end
     end
   end
 

@@ -85,6 +85,7 @@ class Application
       require_relative 'app/clients/quandl_fundamentals'
       require_relative 'app/clients/yahoofinance'
 
+      require_relative 'app/domain/corporate_action_adjustment'
       require_relative 'app/domain/create_security'
       require_relative 'app/domain/currency'
       require_relative 'app/domain/find_security'

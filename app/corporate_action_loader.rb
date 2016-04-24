@@ -15,8 +15,7 @@ class CorporateActionLoader
   end
 
   # returns a TimeSeriesMap[integer datestamp, CorporateAction] containing the splits and dividends for the given security
-  # datestamp is an integer of the form yyyymmdd
-  def get(security, datestamp)
+  def get(security)
     key = cache_key(security)
     cache.get(key) || load_corporate_actions_into_cache(security)
   end
@@ -29,7 +28,7 @@ class CorporateActionLoader
 
   def load_corporate_actions_into_cache(security)
     key = cache_key(security)
-    time_series_map = load_eod_bars_into_time_series_map(security)
+    time_series_map = load_corporate_actions_into_time_series_map(security)
     cache.set(key, time_series_map) if time_series_map
     time_series_map
   end
@@ -38,7 +37,7 @@ class CorporateActionLoader
   def load_corporate_actions_into_time_series_map(security)
     map = TimeSeriesMap.new
     corporate_actions = security.corporate_actions
-    corporate_actions.each {|corporate_action| map.add(eod_bar.ex_date, corporate_action) }
+    corporate_actions.each {|corporate_action| map.add(corporate_action.ex_date, corporate_action) }
     map
   end
 end
