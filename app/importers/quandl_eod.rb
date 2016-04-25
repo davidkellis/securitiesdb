@@ -108,6 +108,7 @@ class QuandlEodImporter
       # If there is no dividend, this column has value 0.
       if eod_bar.dividend != 0.0
         # per https://www.quandl.com/data/EOD/documentation/methodology: Adjustment Ratio = (Close Price + Dividend Amount) / (Close Price)
+        # TODO: import the actual dividend amount - eod_bar.dividend
         dividend_adjustment_factor = (eod_bar.unadjusted_close + eod_bar.dividend) / eod_bar.unadjusted_close
         CorporateAction.create_cash_dividend(security.id, eod_bar.date, nil, nil, nil, dividend_adjustment_factor)
       end
