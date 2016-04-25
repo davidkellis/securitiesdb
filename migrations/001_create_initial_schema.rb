@@ -11,9 +11,6 @@ Sequel.migration do
       Integer :market_close, null: true         # time is an integer of the form hhmmss; if nil, each security traded on exchange has its own close time
       Integer :trading_window_in_days, null: true  # if trading opens and closes on same day, then this is 1; otherwise, the trading window is the number of calendar days spanned by the open trading window (e.g. 2 if market closes on day following the market open); nil if each security has its own trading trading window
 
-      # TrueClass :is_composite_exchange, null: false
-      # foreign_key :composite_exchange_id, :exchanges, null: true
-
       index :id, unique: true
       index :label, unique: true
     end
@@ -156,10 +153,10 @@ Sequel.migration do
       primary_key :id
       foreign_key :security_id, :securities, null: false
       foreign_key :corporate_action_type_id, :corporate_action_types, null: false
-      Integer :ex_date, null: false
-      Integer :declaration_date, null: true
-      Integer :record_date, null: true
-      Integer :payable_date, null: true
+      Integer :ex_date, null: false           # date of the form yyyymmdd - this is the first date in which the corporate action has taken effect
+      Integer :declaration_date, null: true   # date of the form yyyymmdd
+      Integer :record_date, null: true        # date of the form yyyymmdd
+      Integer :payable_date, null: true       # date of the form yyyymmdd
 
       # NOTE:
       # 1. In accordance with the calculations at http://www.crsp.com/files/data_descriptions_guide_0.pdf,
@@ -169,9 +166,9 @@ Sequel.migration do
       # http://www.crsp.com/products/documentation/daily-and-monthly-time-series, and
       # https://www.quandl.com/data/EOD/documentation/methodology,
       # split and dividend adjustment factors are decimal values such that
-      # when unadjusted price and dividend payout values are divided by the appropriate cumulative adjustment factor yield an adjusted price or dividend payout value,
+      # unadjusted price and dividend payout values divided by the appropriate cumulative adjustment factor yield an adjusted price or dividend payout value,
       # and
-      # when unadjusted share and volume values are multiplied by the appropriate cumulative adjustment factor yield an adjusted share or volume value.
+      # unadjusted share and volume values multiplied by the appropriate cumulative adjustment factor yield an adjusted share or volume value.
       # 2. Cumlative adjustment factors may be computed by multiplying consecutive adjustment factors.
       #
       # NOTE:

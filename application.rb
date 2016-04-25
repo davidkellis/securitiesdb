@@ -68,6 +68,7 @@ class Application
     def require_files
       require_relative 'app/data_model'
       require_relative 'app/date'
+      require_relative 'app/lru_cache'
       require_relative 'app/security_name_database'
       require_relative 'app/stats'
       require_relative 'app/time'
