@@ -281,7 +281,7 @@ class CorporateAction < Sequel::Model
   many_to_one :security
   many_to_one :corporate_action_type
 
-  def self.create_cash_dividend(security_id, ex_date, declaration_date, record_date, payable_date, adjustment_factor)
+  def self.create_cash_dividend(security_id, ex_date, declaration_date, record_date, payable_date, adjustment_factor, dividend_amount)
     CorporateAction.create(
       security_id: security_id,
       corporate_action_type_id: CorporateActionType.cash_dividend.id,
@@ -289,7 +289,8 @@ class CorporateAction < Sequel::Model
       declaration_date: declaration_date,
       record_date: record_date,
       payable_date: payable_date,
-      adjustment_factor: adjustment_factor
+      adjustment_factor: adjustment_factor,
+      value: dividend_amount
     )
   end
 
