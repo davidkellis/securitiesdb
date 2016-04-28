@@ -63,7 +63,21 @@ class QuandlTimeSeriesImporter
           quandl_code = "#{dataset.database_code}/#{dataset.dataset_code}"
           raise "Unknown frequency, #{dataset.frequency}, referenced in Quandl dataset \"#{quandl_code}\"."
       end
-      dataset.data.each do |record|
+
+      retries = 5
+      data_records = begin
+        dataset.data
+      rescue => e
+        if retries > 0
+          retries -= 1
+          log("Dataset #{dataset.database_code}/#{dataset.dataset_code} - #{dataset.name} cannot be downloaded right now. Retrying in 5 seconds. Error #{e.message}\nBacktrace: #{e.backtrace.join("\n")}")
+          retry
+        else
+          log("Dataset #{dataset.database_code}/#{dataset.dataset_code} - #{dataset.name} failed to download: #{e.message}\nBacktrace: #{e.backtrace.join("\n")}")
+          return nil
+        end
+      end
+      data_records.each do |record|
         case record.column_names
         when ["Date", "Value"]
           date = convert_date(record.date)
