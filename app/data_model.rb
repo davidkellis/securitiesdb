@@ -89,12 +89,34 @@ class Exchange < Sequel::Model
   # end
 end
 
-class Industry < Sequel::Model
-  one_to_many :securities
+class Classification < Sequel::Model
+  one_to_many :security_classifications
+  many_to_many :securities, :join_table => :security_classifications
+
+  class << self
+    def cache
+      @cache ||= LruCache.new(50)
+    end
+  end
+
+  def self.lookup(major, minor, micro)
+    cache.get_or_set("#{major}/#{minor}/#{micro}") do
+      Classification.where(major: major, minor: minor, micro: micro).first
+    end
+  end
+
+  def self.lookup_or_create(major, minor, micro)
+    lookup(major, minor, create) || begin
+      classification = Classification.create(major: major, minor: minor, micro: micro)
+      cache.set("#{major}/#{minor}/#{micro}", classification)
+      classification
+    end
+  end
 end
 
-class Sector < Sequel::Model
-  one_to_many :securities
+class SecurityClassification < Sequel::Model
+  many_to_one :classification
+  many_to_one :security
 end
 
 class SecurityType < Sequel::Model
@@ -128,8 +150,8 @@ class Security < Sequel::Model
   one_to_many :options, key: :underlying_security_id    # this is the relation "security is the underlying security for many options; option belongs to one underlying security"
 
   many_to_one :security_type
-  many_to_one :industry
-  many_to_one :sector
+  one_to_many :security_classifications
+  many_to_many :classifications, :join_table => :security_classifications
 
   # This is the relation "security identifies one options contract; options contract is identified by one security;
   # Alternatively, the security and the option both uniquely identify a single options contract,
@@ -189,6 +211,19 @@ class Security < Sequel::Model
       join(:listed_securities, :security_id => :id).
       join(:exchanges, :id => :listed_securities__exchange_id).
       where(:exchanges__label => "INDEX")
+  end
+
+
+  def classify(major, minor, micro)
+    classification = Classification.lookup_or_create(major: major, minor: minor, micro: micro)
+    self.add_classification(classification) unless self.classifications.include?(classification)
+    classification
+  end
+
+  def unclassify(major, minor, micro)
+    classification = Classification.lookup_or_create(major: major, minor: minor, micro: micro)
+    self.remove_classification(classification)
+    classification
   end
 end
 

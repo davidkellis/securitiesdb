@@ -10,10 +10,14 @@ Sequel.migration do
 
     create_table :classifications do
       primary_key :id
-      String :name, text: true, null: false
+      String :major, text: true, null: false    # primary classification
+      String :minor, text: true, null: false    # sub-classification
+      String :micro, text: true, null: false    # sub-sub-classification
 
       index :id, unique: true
-      index :name, unique: true
+      index [:major, :minor, :micro], unique: true
+      index :minor
+      index :micro
     end
 
     create_table :security_classifications do

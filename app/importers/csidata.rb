@@ -334,7 +334,10 @@ class CsiDataImporter
 
   def create_security(csi_security, default_security_type)
     security_type_name = lookup_security_type(csi_security, default_security_type)
-    CreateSecurity.run(csi_security.name, security_type_name, csi_security.industry, csi_security.sector)
+    security = CreateSecurity.run(csi_security.name, security_type_name)
+    security.classify("Industry", "CSI", csi_security.industry || UNKNOWN_INDUSTRY_NAME)
+    security.classify("Sector", "CSI", csi_security.sector || UNKNOWN_SECTOR_NAME)
+    security
   end
 
   # CsiData::Security is defined as
@@ -365,12 +368,6 @@ class CsiDataImporter
     security_type = find_or_create_security_type(lookup_security_type(csi_security, default_security_type))
     replacement_attributes[:security_type_id] = security_type.id if security.security_type_id != security_type.id
 
-    industry = find_or_create_industry(csi_security.industry || UNKNOWN_INDUSTRY_NAME)
-    replacement_attributes[:industry_id] = industry.id if security.industry_id != industry.id
-
-    sector = find_or_create_sector(csi_security.sector || UNKNOWN_SECTOR_NAME)
-    replacement_attributes[:sector_id] = sector.id if security.sector_id != sector.id
-
     replacement_attributes[:name] = csi_security.name if security.name != csi_security.name
     replacement_attributes[:search_key] = extract_search_key_from_security_name(csi_security.name) if security.name != csi_security.name
 
@@ -378,6 +375,22 @@ class CsiDataImporter
       log("Updating security:\n#{security.to_hash}\n=> #{replacement_attributes.inspect}")
       security.update(replacement_attributes)
     end
+
+    # potentially update security's industry and sector classifications
+    industry_classification = find_associated_csi_industry_classification(security)
+    csi_industry = csi_security.industry || UNKNOWN_INDUSTRY_NAME
+    if industry_classification.micro != csi_industry
+      security.remove_classification(industry_classification)
+      security.classify("Industry", "CSI", csi_industry)
+    end
+
+    sector_classification = find_associated_csi_sector_classification(security)
+    csi_sector = csi_security.sector || UNKNOWN_SECTOR_NAME
+    if sector_classification.micro != csi_sector)
+      security.remove_classification(sector_classification)
+      security.classify("Sector", "CSI", csi_sector)
+    end
+
 
 
     # update ListedSecurity
@@ -429,16 +442,12 @@ class CsiDataImporter
     end
   end
 
-  def find_or_create_sector(sector_name)
-    if sector_name && !sector_name.empty?
-      Sector.first(name: sector_name) || Sector.create(name: sector_name)
-    end
+  def find_associated_csi_sector_classification(security)
+    security.classifications_dataset.where(major: "Sector", minor: "CSI").first
   end
 
-  def find_or_create_industry(industry_name)
-    if industry_name && !industry_name.empty?
-      Industry.first(name: industry_name) || Industry.create(name: industry_name)
-    end
+  def find_associated_csi_industry_classification(security)
+    security.classifications_dataset.where(major: "Industry", minor: "CSI").first
   end
 
 end
