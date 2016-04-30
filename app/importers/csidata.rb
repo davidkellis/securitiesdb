@@ -386,7 +386,7 @@ class CsiDataImporter
 
     sector_classification = find_associated_csi_sector_classification(security)
     csi_sector = csi_security.sector || UNKNOWN_SECTOR_NAME
-    if sector_classification.micro != csi_sector)
+    if sector_classification.micro != csi_sector
       security.remove_classification(sector_classification)
       security.classify("Sector", "CSI", csi_sector)
     end
