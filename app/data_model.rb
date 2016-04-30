@@ -412,7 +412,9 @@ class FundamentalDataset < Sequel::Model
   many_to_one :security
   many_to_one :fundamental_attribute
   many_to_one :fundamental_dimension
-  many_to_one :time_series      # fundamental_datasets-to-time_series is really a one-to-one association
+  many_to_one :time_series      # fundamental_datasets-to-time_series is really a one-to-one association;
+                                # the sequel library requires that the relation on the table with the foreign key be
+                                # defined as many_to_one (see http://sequel.jeremyevans.net/rdoc/files/doc/association_basics_rdoc.html#label-Differences+Between+many_to_one+and+one_to_one)
 
   def summary
     {
