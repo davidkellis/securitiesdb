@@ -106,7 +106,7 @@ class Classification < Sequel::Model
   end
 
   def self.lookup_or_create(major, minor, micro)
-    lookup(major, minor, create) || begin
+    lookup(major, minor, micro) || begin
       classification = Classification.create(major: major, minor: minor, micro: micro)
       cache.set("#{major}/#{minor}/#{micro}", classification)
       classification
@@ -215,13 +215,13 @@ class Security < Sequel::Model
 
 
   def classify(major, minor, micro)
-    classification = Classification.lookup_or_create(major: major, minor: minor, micro: micro)
+    classification = Classification.lookup_or_create(major, minor, micro)
     self.add_classification(classification) unless self.classifications.include?(classification)
     classification
   end
 
   def unclassify(major, minor, micro)
-    classification = Classification.lookup_or_create(major: major, minor: minor, micro: micro)
+    classification = Classification.lookup_or_create(major, minor, micro)
     self.remove_classification(classification)
     classification
   end
@@ -298,6 +298,12 @@ end
 
 class EodBar < Sequel::Model
   many_to_one :security
+
+  def adjusted_close(frame_of_reference_datestamp)
+    corporate_action_tsm = CorporateActionLoader.get(self.security)
+    cumulative_adjustment_factor = CorporateActionAdjustment.calculate_cumulative_adjustment_factor(self.security, self.date, frame_of_reference_datestamp)
+    CorporateActionAdjustment.adjust_price(self.close.to_f, cumulative_adjustment_factor)
+  end
 end
 
 class CorporateActionType < Sequel::Model

@@ -27,6 +27,11 @@ class Date
   end
 
   class << self
+    # year, month, and day are integers
+    def build_datestamp(year, month, day)
+      (year * 100 + month) * 100 + day
+    end
+
     # datestamp is an int of the form yyyymmdd
     def datestamp_to_date(datestamp)
       day = datestamp % 100
@@ -56,10 +61,27 @@ class Date
       timestamp / 100000000
     end
 
+    # returns [year, month, day] of yyyymmdd integer datestamp
+    def datestamp_components(datestamp)
+      day = datestamp % 100
+      datestamp = datestamp / 100
+      month = datestamp % 100
+      year = datestamp / 100
+      [year, month, day]
+    end
+
     # datestamp is an integer of the form yyyymmdd
     # return an integer "monthstamp" of the form yyyymm
     def datestamp_to_monthstamp(datestamp)
       datestamp / 100
+    end
+
+    # monthstamp is an integer of the form yyyymm
+    # return an array containing the year and month represented by the monthstamp; array is of the form: [yyyy, mm]
+    def monthstamp_to_year_month(monthstamp)
+      month = monthstamp % 100
+      year = monthstamp / 100
+      [year, month]
     end
 
     def date_at_time(date, hour, minute, second)
@@ -71,7 +93,7 @@ class Date
     end
 
     def date_to_datestamp(date)
-      (date.year * 100 + date.month) * 100 + date.day
+      build_datestamp(date.year, date.month, date.day)
     end
 
 
@@ -516,11 +538,11 @@ module DateExtensions
     end
 
     def at_local_time(local_time)
-      Date.date_at_local_time(date, local_time)
+      Date.date_at_local_time(self, local_time)
     end
 
     def to_datestamp
-      Date.date_to_datestamp(date)
+      Date.date_to_datestamp(self)
     end
   end
 end

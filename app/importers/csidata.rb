@@ -379,15 +379,15 @@ class CsiDataImporter
     # potentially update security's industry and sector classifications
     industry_classification = find_associated_csi_industry_classification(security)
     csi_industry = csi_security.industry || UNKNOWN_INDUSTRY_NAME
-    if industry_classification.micro != csi_industry
-      security.remove_classification(industry_classification)
+    if industry_classification.nil? || industry_classification.micro != csi_industry
+      security.remove_classification(industry_classification) if industry_classification
       security.classify("Industry", "CSI", csi_industry)
     end
 
     sector_classification = find_associated_csi_sector_classification(security)
     csi_sector = csi_security.sector || UNKNOWN_SECTOR_NAME
-    if sector_classification.micro != csi_sector
-      security.remove_classification(sector_classification)
+    if sector_classification.nil? || sector_classification.micro != csi_sector
+      security.remove_classification(sector_classification) if sector_classification
       security.classify("Sector", "CSI", csi_sector)
     end
 

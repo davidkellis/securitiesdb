@@ -1,3 +1,5 @@
+require 'socket'    # for SocketError
+
 class QuandlTimeSeriesImporter
   def initialize
     @data_vendor = DataVendor.first(name: "Quandl")
@@ -37,8 +39,24 @@ class QuandlTimeSeriesImporter
     db = Quandl::Database.get(quandl_database_code)
     total_pages = db.datasets.meta[:total_pages]
     (1..total_pages).reduce([]) do |memo, page_number|
-      datasets = db.datasets(params: {page: page_number}).values
-      memo.concat(datasets)
+      i = 1
+      begin
+        datasets = db.datasets(params: {page: page_number}).values
+        memo.concat(datasets)
+      rescue SocketError => e
+        puts "Connection error ##{i}"
+        puts e.message
+        puts e.backtrace("\n")
+        i += 1
+        retry if i <= 10
+      rescue => e
+        puts "Error ##{i}"
+        puts e.message
+        puts e.backtrace("\n")
+        i += 1
+        retry if i <= 10
+      end
+      memo
     end
   end
 

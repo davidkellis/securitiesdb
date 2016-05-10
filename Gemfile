@@ -2,7 +2,7 @@ source "https://rubygems.org"
 
 gem "sequel"
 
-# for ruby 2.2.3
+# for ruby 2.3.0
 gem "pg"
 gem "sequel_pg"
 
@@ -23,3 +23,4 @@ gem "rubyzip"
 gem "simstring_pure"
 gem "text"                  # for Double Metaphone algorihtm
 gem "lru_redux"
+gem "treemap"

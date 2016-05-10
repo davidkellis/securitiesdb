@@ -66,11 +66,16 @@ class Application
     end
 
     def require_files
+      require_relative 'app/time_series_map_loader'
+      require_relative 'app/corporate_action_loader'
       require_relative 'app/data_model'
       require_relative 'app/date'
+      require_relative 'app/eod_bar_loader'
       require_relative 'app/lru_cache'
       require_relative 'app/security_name_database'
       require_relative 'app/stats'
+      require_relative 'app/time_series_map'
+      require_relative 'app/time_series_observation_loader'
       require_relative 'app/time'
 
       require_relative 'app/clients/bsym'
@@ -79,9 +84,14 @@ class Application
       require_relative 'app/clients/quandl_fundamentals'
       require_relative 'app/clients/yahoofinance'
 
+      require_relative 'app/domain/corporate_action_adjustment'
       require_relative 'app/domain/create_security'
       require_relative 'app/domain/currency'
+      require_relative 'app/domain/find_eod_bar'
+      require_relative 'app/domain/find_fundamentals'
+      require_relative 'app/domain/find_corporate_action'
       require_relative 'app/domain/find_security'
+      require_relative 'app/domain/find_time_series'
       require_relative 'app/domain/lookup_fundamentals'
       require_relative 'app/domain/time_zone'
 

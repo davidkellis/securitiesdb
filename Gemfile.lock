@@ -65,7 +65,7 @@ GEM
     mime-types (2.99.1)
     mini_portile2 (2.0.0)
     minitest (5.8.4)
-    multi_json (1.11.2)
+    multi_json (1.12.0)
     multi_xml (0.5.5)
     multipart-post (2.0.0)
     netrc (0.11.0)
@@ -107,10 +107,10 @@ GEM
       childprocess (~> 0.5)
       rubyzip (~> 1.0)
       websocket (~> 1.0)
-    sequel (4.32.0)
-    sequel_pg (1.6.14)
+    sequel (4.34.0)
+    sequel_pg (1.6.17)
       pg (>= 0.8.0)
-      sequel (>= 3.39.0)
+      sequel (>= 4.0.0)
     settingslogic (2.0.9)
     signet (0.7.2)
       addressable (~> 2.3)
@@ -130,6 +130,7 @@ GEM
     text (1.3.1)
     thread_safe (0.3.5)
     thread_safe (0.3.5-java)
+    treemap (1.0.3)
     tzinfo (1.2.2)
       thread_safe (~> 0.1)
     unf (0.1.4)
@@ -138,7 +139,7 @@ GEM
     unf_ext (0.0.7.2)
     watir-webdriver (0.9.1)
       selenium-webdriver (>= 2.46.2)
-    websocket (1.2.2)
+    websocket (1.2.3)
 
 PLATFORMS
   java
@@ -159,6 +160,7 @@ DEPENDENCIES
   simstring_pure
   slop
   text
+  treemap
   watir-webdriver
 
 BUNDLED WITH

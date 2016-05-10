@@ -218,7 +218,7 @@ Sequel.migration do
     create_table :daily_observations do
       primary_key :id
       foreign_key :time_series_id, :time_series, null: false
-      Integer :date, null: false
+      Integer :date, null: false    # the date is the day that the observation was made; it is assumed that the observation covers a subset of the time between midnight and 11:59:59 p.m. on one day
       BigDecimal :value, size: [30, 9], null: false
 
       index :id, unique: true
@@ -228,7 +228,7 @@ Sequel.migration do
     create_table :weekly_observations do
       primary_key :id
       foreign_key :time_series_id, :time_series, null: false
-      Integer :date, null: false
+      Integer :date, null: false    # the date is the last day of the week-long period over which the observation was made
       BigDecimal :value, size: [30, 9], null: false
 
       index :id, unique: true
@@ -238,7 +238,7 @@ Sequel.migration do
     create_table :monthly_observations do
       primary_key :id
       foreign_key :time_series_id, :time_series, null: false
-      Integer :date, null: false
+      Integer :date, null: false    # the date is the last day of the month-long period over which the observation was made
       BigDecimal :value, size: [30, 9], null: false
 
       index :id, unique: true
@@ -248,7 +248,7 @@ Sequel.migration do
     create_table :quarterly_observations do
       primary_key :id
       foreign_key :time_series_id, :time_series, null: false
-      Integer :date, null: false
+      Integer :date, null: false    # the date is the last day of the quarter-long period over which the observation was made
       BigDecimal :value, size: [30, 9], null: false
 
       index :id, unique: true
@@ -258,7 +258,7 @@ Sequel.migration do
     create_table :yearly_observations do
       primary_key :id
       foreign_key :time_series_id, :time_series, null: false
-      Integer :date, null: false
+      Integer :date, null: false    # the date is the last day of the year-long period over which the observation was made
       BigDecimal :value, size: [30, 9], null: false
 
       index :id, unique: true

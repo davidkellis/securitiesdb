@@ -69,7 +69,6 @@ class QuandlFundamentalsImporter
           security = securities.first
           import_fundamentals_for_single_security(security, ticker, indicator, fundamental_dimension_name, indicator_values)
         else
-          # todo: finish this section
           security_reference = ticker_to_security[ticker]   # this is a QuandlFundamentals::Security object
           if security_reference
             db = SecurityNameDatabase.new
@@ -118,7 +117,6 @@ class QuandlFundamentalsImporter
     end
   end
 
-  # todo: rewrite this to take into account the new schema
   def create_fundamental_dataset(security, ticker, fundamental_attribute_label, fundamental_dimension_name)
     update_frequency = case fundamental_dimension_name
     when FundamentalDimension::INSTANTANEOUS
@@ -162,7 +160,6 @@ class QuandlFundamentalsImporter
     )
   end
 
-  # todo: rewrite this to take into account the new schema
   # indicator_values is an array of QuandlFundamentals::IndicatorValue objects
   def import_missing_fundamentals(fundamental_dataset, indicator_values)
     # log "Importing #{indicator_values.count} missing values of attribute '#{attribute_label}' (dimension=#{dimension_name}) from Quandl Fundamentals database for symbol #{security.symbol} (security id=#{security.id})."
