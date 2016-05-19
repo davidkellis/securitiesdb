@@ -90,6 +90,7 @@ class Exchange < Sequel::Model
 end
 
 class Classification < Sequel::Model
+  one_to_many :classification_stats_summaries
   one_to_many :security_classifications
   many_to_many :securities, :join_table => :security_classifications
 
@@ -112,11 +113,34 @@ class Classification < Sequel::Model
       classification
     end
   end
+
+  def name
+    "#{major}__#{minor}__#{micro}"
+  end
 end
 
+# join model between Classification and Security
 class SecurityClassification < Sequel::Model
+  extend Forwardable
+
   many_to_one :classification
   many_to_one :security
+
+  def_delegators :classification, :major, :minor, :micro
+
+  def name
+    "#{date}__#{classification.name}"
+  end
+end
+
+class SecurityVariable < Sequel::Model
+  one_to_many :classification_summaries
+end
+
+# stores statsistics that describe the distribution of a variable taken over all the securities within a given classification
+class ClassificationSummary < Sequel::Model
+  many_to_one :classification
+  many_to_one :security_variable
 end
 
 class SecurityType < Sequel::Model
@@ -150,7 +174,7 @@ class Security < Sequel::Model
   one_to_many :options, key: :underlying_security_id    # this is the relation "security is the underlying security for many options; option belongs to one underlying security"
 
   many_to_one :security_type
-  one_to_many :security_classifications
+  one_to_many :security_classifications, eager: :classification
   many_to_many :classifications, :join_table => :security_classifications
 
   # This is the relation "security identifies one options contract; options contract is identified by one security;
@@ -214,16 +238,20 @@ class Security < Sequel::Model
   end
 
 
-  def classify(major, minor, micro)
+  def classify(major, minor, micro, datestamp = Date.today_datestamp)
     classification = Classification.lookup_or_create(major, minor, micro)
-    self.add_classification(classification) unless self.classifications.include?(classification)
-    classification
+    existing_security_classification = security_classifications_dataset.first(date: datestamp, classification: classification)
+    existing_security_classification ||= self.add_security_classification(date: datestamp, classification: classification)
   end
 
-  def unclassify(major, minor, micro)
+  def unclassify(major, minor, micro, datestamp = nil)
     classification = Classification.lookup_or_create(major, minor, micro)
-    self.remove_classification(classification)
-    classification
+    if datestamp
+      existing_security_classification = security_classifications_dataset.first(date: datestamp, classification: classification)
+      self.remove_security_classification(existing_security_classification) if existing_security_classification
+    else
+      security_classifications_dataset.where(classification: classification).delete
+    end
   end
 end
 

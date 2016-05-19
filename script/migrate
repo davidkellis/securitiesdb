@@ -3,6 +3,7 @@
 require_relative '../application'
 
 def migrate
+  # puts "sequel -m migrations/ #{AppConfig.database.connection_string}"
   `sequel -m migrations/ #{AppConfig.database.connection_string}`
 end
 

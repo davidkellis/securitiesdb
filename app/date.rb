@@ -27,6 +27,10 @@ class Date
   end
 
   class << self
+    def today_datestamp
+      date_to_datestamp(Date.today)
+    end
+
     # year, month, and day are integers
     def build_datestamp(year, month, day)
       (year * 100 + month) * 100 + day

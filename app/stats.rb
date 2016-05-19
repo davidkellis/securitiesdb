@@ -11,6 +11,10 @@ module Stats
       @min = nil
     end
 
+    def push_all(xs)
+      xs.each {|x| push(x) }
+    end
+
     # invariant:
     # m_k = m_kMinus1 + (x_k - m_kMinus1) / k
     # s_k = s_kMinus1 + (x_k - m_kMinus1) * (x_k - m_k)

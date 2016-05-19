@@ -4,7 +4,7 @@ class CorporateActionLoader < TimeSeriesMapLoader
   include Singleton
 
   def self.get(security)
-    instance.get(security, nil)
+    instance.get(security)
   end
 
 
@@ -15,12 +15,12 @@ class CorporateActionLoader < TimeSeriesMapLoader
   protected
 
   # compute cache key that identifies a unique Security
-  def cache_key(security, datestamp)
+  def cache_key(security)
     security.id
   end
 
   # query the database all the corporate actions associated with <security>
-  def find_observations(security, datestamp)
+  def find_observations(security)
     security.corporate_actions.to_a
   end
 

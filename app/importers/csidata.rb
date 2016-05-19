@@ -14,51 +14,54 @@ class CsiDataImporter
 
   # this is a mapping from [CSI Exchange, CSI Child Exchange] to exchange label as defined in ExchangesImporter
   CSI_EXCHANGE_PAIR_TO_EXCHANGE_LABEL_MAP = {
-    ["NYSE", nil] => "NYSE",
     ["AMEX", nil] => "NYSE-MKT",
-    ["NYSE", "NYSE"] => "NYSE",
-    ["OTC", nil] => "OTC",
     ["AMEX", "AMEX"] => "NYSE-MKT",
-    ["OTC", "OTC Markets Pink Sheets"] => "OTC-PINK",
-    ["OTC", "OTC Markets QX"] => "OTC-QX",
-    ["OTC", "Nasdaq Global Select"] => "NASDAQ-GSM",
-    ["OTC", "Nasdaq Global Market"] => "NASDAQ-GM",
-    ["OTC", "OTC Markets QB"] => "OTC-QB",
-    ["OTC", "Nasdaq Capital Market"] => "NASDAQ-CM",
-    ["MUTUAL", "Mutual Fund"] => "MUTUAL",
-    ["MUTUAL", nil] => "MUTUAL",
-    ["AMEX", "NYSE ARCA"] => "NYSE-ARCA",
-    ["INDEX", nil] => "INDEX",
-    ["AMEX", "NYSE"] => "NYSE",
-    ["INDEX", "Stock Indices"] => "INDEX",
-    ["FINDEX", "Foreign Stock Indices"] => "INDEX",
-    ["FINDEX", nil] => "INDEX",
-    ["OTC", "NYSE"] => "NYSE",
-    ["NYSE", "AMEX"] => "NYSE-MKT",
-    ["NYSE", "OTC Markets Pink Sheets"] => "OTC-PINK",
-    # ["TSX", "Toronto Stock Exchange"] => "???",
-    # ["VSE", "TSX Venture Exchange"] => "???",
-    # ["MSE", "Montreal Stock Exchange"] => "???",
-    ["OTC", "AMEX"] => "NYSE-MKT",
-    ["AMEX", "OTC Markets QX"] => "OTC-QX",
-    ["NYSE", "NYSE ARCA"] => "NYSE-ARCA",
-    ["NYSE", "BATS Global Markets"] => "BATS-CATCHALL",
-    # ["LSE", "London Stock Exchange"] => "???",
-    # ["ALBRTA", "Alberta Stock Exchange"] => "???",
-    # ["OTC", "Grey Market"] => "",
-    ["NYSE", "Nasdaq Capital Market"] => "NASDAQ-CM",
-    ["AMEX", "OTC Markets QB"] => "OTC-QB",
-    ["NYSE", "OTC Markets QX"] => "OTC-QX",
-    # ["VSE", "Toronto Stock Exchange"] => "",
-    ["OTC", "NYSE ARCA"] => "NYSE-ARCA",
-    ["AMEX", "OTC Markets Pink Sheets"] => "OTC-PINK",
-    ["NYSE", "OTC Markets QB"] => "OTC-QB",
-    ["NYSE", "Nasdaq Global Market"] => "NASDAQ-GM",
     ["AMEX", "BATS Global Markets"] => "BATS-CATCHALL",
+    ["AMEX", "NYSE"] => "NYSE",
+    ["AMEX", "NYSE ARCA"] => "NYSE-ARCA",
+    ["AMEX", "OTC Markets QX"] => "OTC-QX",
+    ["AMEX", "OTC Markets QB"] => "OTC-QB",
+    ["AMEX", "OTC Markets Pink Sheets"] => "OTC-PINK",
+    ["NYSE", nil] => "NYSE",
+    ["NYSE", "AMEX"] => "NYSE-MKT",
+    ["NYSE", "BATS Global Markets"] => "BATS-CATCHALL",
+    ["NYSE", "Nasdaq Capital Market"] => "NASDAQ-CM",
+    ["NYSE", "Nasdaq Global Market"] => "NASDAQ-GM",
+    ["NYSE", "Nasdaq Global Select"] => "NASDAQ-GSM",
+    ["NYSE", "NYSE"] => "NYSE",
+    ["NYSE", "NYSE ARCA"] => "NYSE-ARCA",
+    ["NYSE", "OTC Markets QB"] => "OTC-QB",
+    ["NYSE", "OTC Markets QX"] => "OTC-QX",
+    ["NYSE", "OTC Markets Pink Sheets"] => "OTC-PINK",
+    ["NASDAQ", nil] => "NASDAQ-CATCHALL",
+    ["NASDAQ", "AMEX"] => "NYSE-MKT",
+    ["NASDAQ", "BATS Global Markets"] => "BATS-CATCHALL",
+    ["NASDAQ", "Grey Market"] => "NASDAQ-CATCHALL",
+    ["NASDAQ", "Nasdaq Capital Market"] => "NASDAQ-CM",
+    ["NASDAQ", "Nasdaq Global Market"] => "NASDAQ-GM",
+    ["NASDAQ", "Nasdaq Global Select"] => "NASDAQ-GSM",
+    ["NASDAQ", "NYSE"] => "NYSE",
+    ["NASDAQ", "NYSE ARCA"] => "NYSE-ARCA",
+    ["NASDAQ", "OTC Markets QB"] => "OTC-QB",
+    ["NASDAQ", "OTC Markets QX"] => "OTC-QX",
+    ["NASDAQ", "OTC Markets Pink Sheets"] => "OTC-PINK",
+    ["OTC", nil] => "OTC",
+    ["OTC", "AMEX"] => "NYSE-MKT",
     ["OTC", "BATS Global Markets"] => "BATS-CATCHALL",
-    # ["TSX", nil] => "",
-    ["NYSE", "Nasdaq Global Select"] => "NASDAQ-GSM"
-    # ["LSE", nil] => ""
+    ["OTC", "Nasdaq Capital Market"] => "NASDAQ-CM",
+    ["OTC", "Nasdaq Global Market"] => "NASDAQ-GM",
+    ["OTC", "Nasdaq Global Select"] => "NASDAQ-GSM",
+    ["OTC", "NYSE"] => "NYSE",
+    ["OTC", "NYSE ARCA"] => "NYSE-ARCA",
+    ["OTC", "OTC Markets QB"] => "OTC-QB",
+    ["OTC", "OTC Markets QX"] => "OTC-QX",
+    ["OTC", "OTC Markets Pink Sheets"] => "OTC-PINK",
+    ["MUTUAL", nil] => "MUTUAL",
+    ["MUTUAL", "Mutual Fund"] => "MUTUAL",
+    ["INDEX", nil] => "INDEX",
+    ["INDEX", "Stock Indices"] => "INDEX",
+    ["FINDEX", nil] => "INDEX",
+    ["FINDEX", "Foreign Stock Indices"] => "INDEX"
   }
 
   attr_accessor :csi_client
@@ -197,6 +200,8 @@ class CsiDataImporter
       else                                    # if multiple listed securities found, we have a data problem
         log("Error: There are multiple listed securities with symbol \"#{csi_security.symbol}\"")
       end
+    else
+      log("Exchange not found for security: #{csi_security.to_h}")
     end
   end
 
@@ -335,8 +340,9 @@ class CsiDataImporter
   def create_security(csi_security, default_security_type)
     security_type_name = lookup_security_type(csi_security, default_security_type)
     security = CreateSecurity.run(csi_security.name, security_type_name)
-    security.classify("Industry", "CSI", csi_security.industry || UNKNOWN_INDUSTRY_NAME)
-    security.classify("Sector", "CSI", csi_security.sector || UNKNOWN_SECTOR_NAME)
+    start_date = csi_security.start_date ? convert_date(csi_security.start_date) : Date.today_datestamp
+    security.classify("Industry", "CSI", csi_security.industry || UNKNOWN_INDUSTRY_NAME, start_date)
+    security.classify("Sector", "CSI", csi_security.sector || UNKNOWN_SECTOR_NAME, start_date)
     security
   end
 
@@ -377,20 +383,11 @@ class CsiDataImporter
     end
 
     # potentially update security's industry and sector classifications
-    industry_classification = find_associated_csi_industry_classification(security)
     csi_industry = csi_security.industry || UNKNOWN_INDUSTRY_NAME
-    if industry_classification.nil? || industry_classification.micro != csi_industry
-      security.remove_classification(industry_classification) if industry_classification
-      security.classify("Industry", "CSI", csi_industry)
-    end
+    security.classify("Industry", "CSI", csi_industry, Date.today_datestamp)
 
-    sector_classification = find_associated_csi_sector_classification(security)
     csi_sector = csi_security.sector || UNKNOWN_SECTOR_NAME
-    if sector_classification.nil? || sector_classification.micro != csi_sector
-      security.remove_classification(sector_classification) if sector_classification
-      security.classify("Sector", "CSI", csi_sector)
-    end
-
+    security.classify("Sector", "CSI", csi_sector, Date.today_datestamp)
 
 
     # update ListedSecurity
@@ -440,14 +437,6 @@ class CsiDataImporter
     if security_type_name && !security_type_name.empty?
       SecurityType.first(name: security_type_name) || SecurityType.create(name: security_type_name)
     end
-  end
-
-  def find_associated_csi_sector_classification(security)
-    security.classifications_dataset.where(major: "Sector", minor: "CSI").first
-  end
-
-  def find_associated_csi_industry_classification(security)
-    security.classifications_dataset.where(major: "Industry", minor: "CSI").first
   end
 
 end
